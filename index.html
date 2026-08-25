@@ -2,136 +2,136 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f8fb" />
-  <meta name="description" content="ThaiFlood Pro — แดชบอร์ดเฝ้าระวังความเสี่ยงน้ำท่วมจากฝนรายวันทั่วประเทศไทย" />
-  <title>ThaiFlood Pro — เฝ้าระวังน้ำท่วมประเทศไทย</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#f4f7fb" />
+  <meta name="description" content="ThaiFlood Intelligence — วิเคราะห์น้ำท่วมซ้ำซากย้อนหลัง 11 ปี + สัญญาณฝนล่าสุด" />
+  <title>ThaiFlood Intelligence — น้ำท่วมซ้ำซากประเทศไทย</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div id="app" class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="ThaiFlood Pro home">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32"><path d="M16 3C12.2 8.6 7 13.8 7 20a9 9 0 1 0 18 0c0-6.2-5.2-11.4-9-17Z"/><path d="M11 21c2.9 1.8 7.1 1.8 10 0"/></svg>
-        </span>
-        <span><strong>ThaiFlood</strong><em>PRO</em></span>
-      </a>
-      <div class="topbar-actions">
-        <div class="live-pill"><span></span><b>ข้อมูลรายวัน</b></div>
-        <button class="icon-btn" id="refreshBtn" aria-label="อัปเดตข้อมูล" title="อัปเดตข้อมูล">
-          <svg viewBox="0 0 24 24"><path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 4v4h4M4 13a8.1 8.1 0 0 0 15.5 3M20 20v-4h-4"/></svg>
-        </button>
+<div id="app" class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="#overview"><span class="brand-mark">≈</span><span><b>ThaiFlood</b><em>INTELLIGENCE</em></span></a>
+    <nav class="desktop-nav">
+      <a href="#overview">ภาพรวม</a><a href="#hotspots">ท่วมซ้ำซาก</a><a href="#province">เจาะจังหวัด</a><a href="#projection">ฉากทัศน์ 2569</a>
+    </nav>
+    <button id="refreshBtn" class="icon-btn" title="อัปเดตข้อมูล">↻</button>
+  </header>
+
+  <main class="main-wrap">
+    <section id="overview" class="hero">
+      <div class="hero-copy-wrap">
+        <p class="eyebrow">FLOOD PATTERN INTELLIGENCE • 2558–2568</p>
+        <h1>น้ำท่วมซ้ำซาก<br><span>ไม่ใช่เรื่องของโชคชะตา</span></h1>
+        <p>ระบบนี้ตอบว่า <b>“ที่ไหนท่วมซ้ำบ่อยแค่ไหน — เกิดจากอะไร — รอบต่อไปควรจับตาตรงไหน”</b> โดยใช้ประวัติ 11 ปีเป็นแกนหลัก และใช้ฝนล่าสุดเป็นสัญญาณเสริม ไม่ใช่เอาพยากรณ์ฝนมาแทนน้ำท่วม</p>
       </div>
-    </header>
+      <div class="hero-badge"><small>แนวคิดหลัก</small><strong>HISTORY → PATTERN → ACTION</strong><span>อดีต • รูปแบบ • การเตรียมรับมือ</span></div>
+    </section>
 
-    <main class="main-wrap">
-      <section class="hero">
-        <div>
-          <p class="eyebrow">ศูนย์เฝ้าระวังความเสี่ยงจากฝน</p>
-          <h1>วันนี้พื้นที่ไหน<br><span>ต้องระวังน้ำท่วม?</span></h1>
-          <p class="hero-copy">ดูความเสี่ยงรายจังหวัด ปริมาณฝน และแนวโน้ม 7 วันในหน้าเดียว ออกแบบให้เข้าใจได้ภายในไม่กี่วินาที</p>
-        </div>
-        <div class="updated-card" id="updatedCard">
-          <span class="status-dot"></span>
-          <div><small>อัปเดตล่าสุด</small><strong id="updatedAt">กำลังโหลด...</strong></div>
-        </div>
-      </section>
-
-      <section class="search-panel" aria-label="เลือกจังหวัด">
-        <div class="search-box-wrap">
-          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-          <input id="provinceSearch" autocomplete="off" placeholder="ค้นหาจังหวัด เช่น เชียงใหม่, อยุธยา, สงขลา..." aria-label="ค้นหาจังหวัด" />
-          <button id="clearSearch" class="clear-btn" aria-label="ล้างคำค้นหา">×</button>
-          <div id="searchResults" class="search-results" hidden></div>
-        </div>
-        <button id="locateBtn" class="locate-btn">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>
-          <span>ตำแหน่งฉัน</span>
-        </button>
-      </section>
-
-      <div id="errorBanner" class="error-banner" hidden>
-        <strong>ดึงข้อมูลล่าสุดไม่สำเร็จ</strong>
-        <span id="errorText">กรุณาลองอีกครั้ง</span>
-        <button id="errorRetry">ลองใหม่</button>
+    <section class="search-strip">
+      <div class="search-wrap">
+        <span>⌕</span><input id="provinceSearch" autocomplete="off" placeholder="ค้นหาจังหวัด / อำเภอ เช่น เชียงใหม่, หาดใหญ่, บางบาล..." />
+        <div id="searchResults" class="search-results" hidden></div>
       </div>
+      <button id="recurringOnlyBtn" class="filter-btn active">● เฉพาะท่วมซ้ำซาก</button>
+    </section>
 
-      <section class="dashboard-grid">
-        <article class="risk-overview card">
-          <div class="section-head">
-            <div><p class="section-kicker">ภาพรวมประเทศ</p><h2>จังหวัดที่ต้องเฝ้าระวังวันนี้</h2></div>
-            <div class="legend"><span class="lg critical"></span>วิกฤต <span class="lg high"></span>สูง <span class="lg watch"></span>เฝ้าระวัง</div>
-          </div>
-          <div class="map-area">
-            <svg id="riskMap" class="risk-map" viewBox="0 0 620 720" role="img" aria-label="แผนที่จุดความเสี่ยงรายจังหวัด"></svg>
-            <div class="map-caption">แตะจุดจังหวัดเพื่อดูรายละเอียด</div>
-          </div>
-        </article>
+    <div id="errorBanner" class="error-banner" hidden><b>ข้อมูลบางส่วนโหลดไม่สำเร็จ</b><span id="errorText"></span><button id="errorRetry">ลองใหม่</button></div>
 
-        <aside class="top-risk card">
-          <div class="section-head compact">
-            <div><p class="section-kicker">TOP RISK</p><h2>เสี่ยงสูงสุด</h2></div>
-            <span class="date-chip" id="todayChip">วันนี้</span>
-          </div>
-          <div id="topRiskList" class="risk-list">
-            <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
-          </div>
-        </aside>
-      </section>
+    <section class="headline-stats" id="headlineStats">
+      <article><span>พื้นที่ท่วมซ้ำซากในชุดอ้างอิง</span><strong id="repeatAreaCount">—</strong><small>จังหวัด</small></article>
+      <article><span>ความถี่สูงสุด</span><strong id="maxRecurrence">—</strong><small>ครั้ง / 11 ปี</small></article>
+      <article><span>จังหวัดเสี่ยงซ้ำอันดับ 1</span><strong id="topProvince">—</strong><small id="topProvinceMeta">—</small></article>
+      <article><span>สัญญาณฝนวันนี้สูงสุด</span><strong id="maxRainToday">—</strong><small>มม. • ข้อมูลเสริม</small></article>
+    </section>
 
-      <section class="selected-grid">
-        <article class="province-card card">
-          <div class="province-top">
-            <div>
-              <p class="section-kicker">จังหวัดที่เลือก</p>
-              <h2 id="selectedName">—</h2>
-              <span id="selectedRegion" class="region-chip">—</span>
-            </div>
-            <div id="riskBadge" class="risk-badge neutral"><small>ดัชนีความเสี่ยง</small><strong>—</strong><span>กำลังโหลด</span></div>
+    <section id="hotspots" class="two-col">
+      <article class="card map-card">
+        <div class="section-head"><div><p class="kicker">RECURRENCE MAP</p><h2>แผนที่ “ท่วมซ้ำ” จากประวัติ 11 ปี</h2><p>ขนาดจุด = จำนวนครั้งที่บันทึก • สีเข้ม = ซ้ำบ่อย</p></div><span class="source-chip">2558–2568</span></div>
+        <div class="map-wrap"><svg id="historyMap" viewBox="0 0 620 720" aria-label="แผนที่พื้นที่น้ำท่วมซ้ำซาก"></svg><div class="map-note">แตะจุดเพื่อเจาะจังหวัด</div></div>
+      </article>
+
+      <article class="card ranking-card">
+        <div class="section-head"><div><p class="kicker">TOP HOTSPOTS</p><h2>จังหวัดท่วมซ้ำซากมากที่สุด</h2><p>เรียงจากจำนวนครั้งที่ปรากฏในชุดข้อมูลอ้างอิง</p></div></div>
+        <div id="rankingList" class="ranking-list"></div>
+      </article>
+    </section>
+
+    <section class="card compact-filter-card">
+      <div class="section-head"><div><p class="kicker">MULTI-FILTER</p><h2>ค้นหารูปแบบ ไม่ใช่แค่ดูตัวเลข</h2></div></div>
+      <div class="filter-row">
+        <label>ภูมิภาค<select id="regionFilter"><option value="all">ทุกภูมิภาค</option><option>เหนือ</option><option>กลาง</option><option>อีสาน</option><option>ตะวันออก</option><option>ตะวันตก</option><option>ใต้</option></select></label>
+        <label>จำนวนครั้ง<select id="frequencyFilter"><option value="all">ทั้งหมด</option><option value="4">4 ครั้งขึ้นไป</option><option value="5">5 ครั้งขึ้นไป</option><option value="6">6 ครั้งขึ้นไป</option></select></label>
+        <label>รูปแบบ<select id="mechanismFilter"><option value="all">ทุกสาเหตุ</option><option value="urban">น้ำท่วมเมือง</option><option value="river">น้ำล้นตลิ่ง</option><option value="flash">น้ำป่า/น้ำหลาก</option></select></label>
+        <button id="resetFilters" class="secondary-btn">รีเซ็ต</button>
+      </div>
+    </section>
+
+    <section id="province" class="province-layout">
+      <article class="card province-summary">
+        <div class="province-title-row"><div><p class="kicker">PROVINCE DEEP DIVE</p><h2 id="selectedName">เชียงใหม่</h2><span id="selectedRegion" class="region-chip">ภาคเหนือ</span></div><div id="recurrenceBadge" class="recurrence-badge"><small>ท่วมซ้ำ</small><strong>—</strong><span>ครั้ง / 11 ปี</span></div></div>
+        <div class="mini-tabs" role="tablist"><button class="tab-btn active" data-tab="pattern">รูปแบบ 11 ปี</button><button class="tab-btn" data-tab="events">เหตุการณ์รายปี</button><button class="tab-btn" data-tab="signals">สัญญาณวันนี้</button></div>
+        <div id="tabPattern" class="tab-panel active">
+          <div class="metric-grid">
+            <div><span>ความถี่ที่บันทึก</span><strong id="metricRecurrence">—</strong><small>ครั้ง / 11 ปี</small></div>
+            <div><span>ระดับน้ำสูงสุดที่มีข้อมูล</span><strong id="metricWater">—</strong><small>เมตร</small></div>
+            <div><span>ความเสียหายที่มีข้อมูล</span><strong id="metricDamage">—</strong><small>ล้านบาท</small></div>
+            <div><span>งบช่วยเหลือที่มีข้อมูล</span><strong id="metricAid">—</strong><small>ล้านบาท</small></div>
           </div>
-          <div class="metrics" id="metrics">
-            <div class="metric"><span>ฝนวันนี้</span><strong>—</strong><small>มม.</small></div>
-            <div class="metric"><span>ฝนสะสม 3 วัน</span><strong>—</strong><small>มม.</small></div>
-            <div class="metric"><span>โอกาสฝน</span><strong>—</strong><small>%</small></div>
-            <div class="metric"><span>ฝนหนักสุด/ชม.</span><strong>—</strong><small>มม.</small></div>
+          <div class="pattern-grid">
+            <div class="pattern-box"><h3>จุดที่ต้องจับตา</h3><div id="hotspotTags" class="tags"></div></div>
+            <div class="pattern-box"><h3>กลไก/รูปแบบที่สัมพันธ์</h3><div id="mechanismTags" class="tags"></div></div>
           </div>
-          <div id="adviceBox" class="advice-box"><b>คำแนะนำ</b><span>กำลังประเมินข้อมูล...</span></div>
-        </article>
-
-        <article class="forecast-card card">
-          <div class="section-head compact"><div><p class="section-kicker">7-DAY OUTLOOK</p><h2>แนวโน้มฝน 7 วัน</h2></div></div>
-          <div id="rainChart" class="rain-chart"></div>
-        </article>
-      </section>
-
-      <section class="quick-stats" id="quickStats">
-        <div class="stat-card"><span class="stat-icon critical-icon">!</span><div><small>วิกฤต</small><strong id="criticalCount">—</strong><span>จังหวัด</span></div></div>
-        <div class="stat-card"><span class="stat-icon high-icon">↑</span><div><small>เสี่ยงสูง</small><strong id="highCount">—</strong><span>จังหวัด</span></div></div>
-        <div class="stat-card"><span class="stat-icon watch-icon">◷</span><div><small>เฝ้าระวัง</small><strong id="watchCount">—</strong><span>จังหวัด</span></div></div>
-        <div class="stat-card"><span class="stat-icon rain-icon">☂</span><div><small>ฝนสูงสุดวันนี้</small><strong id="maxRain">—</strong><span>มม.</span></div></div>
-      </section>
-
-      <section class="source-card card">
-        <div class="source-copy">
-          <span class="source-mark">i</span>
-          <div><h3>เข้าใจข้อมูลก่อนใช้งาน</h3><p><b>ดัชนีความเสี่ยง</b> ในหน้านี้เป็นการคัดกรองจากปริมาณและความเข้มฝนพยากรณ์ ไม่ใช่ประกาศเตือนภัยน้ำท่วมทางการ การตัดสินใจด้านความปลอดภัยควรตรวจสอบกับหน่วยงานรัฐและข้อมูลพื้นที่น้ำท่วมจากดาวเทียมเพิ่มเติม</p></div>
+          <div class="action-box"><b>Pattern Insight (ข้อสังเกตรูปแบบ)</b><p id="patternInsight">—</p></div>
         </div>
-        <div class="source-links">
-          <a href="https://disaster.gistda.or.th/" target="_blank" rel="noreferrer">GISTDA Disaster ↗</a>
-          <a href="https://www.thaiwater.net/" target="_blank" rel="noreferrer">ThaiWater ↗</a>
+        <div id="tabEvents" class="tab-panel">
+          <div class="timeline-head"><b>Year-by-Year Incident Matrix (เหตุการณ์รายปี)</b><span>2558 → 2568</span></div>
+          <div id="yearMatrix" class="year-matrix"></div>
+          <div id="eventDetails" class="event-details"></div>
         </div>
-      </section>
-    </main>
+        <div id="tabSignals" class="tab-panel">
+          <div class="signal-note">ข้อมูลฝนเป็น “สัญญาณปัจจุบัน” เท่านั้น ไม่ใช่ประวัติน้ำท่วมและไม่ใช่ประกาศเตือนภัยทางการ</div>
+          <div class="metric-grid signal-grid">
+            <div><span>ฝนวันนี้</span><strong id="rain24">—</strong><small>มม.</small></div>
+            <div><span>ฝนสะสม 3 วัน</span><strong id="rain3">—</strong><small>มม.</small></div>
+            <div><span>โอกาสฝน</span><strong id="rainProb">—</strong><small>%</small></div>
+            <div><span>ดัชนีฝน</span><strong id="rainScore">—</strong><small>/ 100</small></div>
+          </div>
+          <div id="sevenDayBars" class="seven-day"></div>
+        </div>
+      </article>
 
-    <footer>
-      <div><strong>ThaiFlood Pro</strong><span>ระบบเฝ้าระวังเพื่อการตัดสินใจเบื้องต้น</span></div>
-      <span>ข้อมูลสภาพอากาศ: Open-Meteo • อัปเดตอัตโนมัติ</span>
-    </footer>
-  </div>
-  <script type="module" src="/app.js"></script>
+      <aside class="card decision-card">
+        <p class="kicker">DECISION LAYER</p><h2>ควรดูอะไร “ก่อนน้ำมา”</h2>
+        <ol>
+          <li><b>ดูพื้นที่ที่ท่วมซ้ำ</b><span>จุดเดิมที่เกิดบ่อยต้องได้ลำดับเฝ้าระวังก่อน</span></li>
+          <li><b>ดูสาเหตุเดิม</b><span>ทางน้ำถูกบล็อก ระบายไม่ทัน น้ำล้นตลิ่ง หรือน้ำป่า</span></li>
+          <li><b>ซ้อนสัญญาณวันนี้</b><span>ฝนสะสม + ความเข้มฝน + ปริมาณน้ำต้นทาง</span></li>
+          <li><b>เปลี่ยนเป็น Action</b><span>เคลียร์ทางน้ำ เตรียมเครื่องสูบ ปิดเส้นทางเสี่ยง แจ้งชุมชน</span></li>
+        </ol>
+        <div class="confidence-box"><small>DATA CONFIDENCE</small><strong id="confidenceLabel">—</strong><p id="confidenceText">—</p></div>
+      </aside>
+    </section>
+
+    <section id="projection" class="projection-section">
+      <div class="section-head projection-head"><div><p class="kicker">2569 RISK PROJECTION</p><h2>ฉากทัศน์ที่ต้องเตรียมรับมือ</h2><p>ใช้เพื่อวางแผน “ถ้าเกิดเงื่อนไขนี้” ไม่ใช่คำพยากรณ์ว่าเหตุการณ์จะเกิดแน่นอน</p></div></div>
+      <div class="scenario-grid">
+        <article class="scenario-card"><span>01</span><h3>ลานีญากำลังแรง</h3><b>เจ้าพระยาตอนล่าง + ภาคใต้ตอนล่าง</b><p>ฝนสะสมสูงกว่าค่าเฉลี่ยอาจเพิ่มความเสี่ยงน้ำท่วมขังยาวนานในพื้นที่ลุ่มและพื้นที่นอกคันกั้นน้ำ</p></article>
+        <article class="scenario-card"><span>02</span><h3>น้ำท่วมเมืองฉับพลัน</h3><b>กทม. • เชียงใหม่ • ชลบุรี • หาดใหญ่</b><p>ฝนหนักเฉพาะแห่งซ้อนกับข้อจำกัดการระบายน้ำ ทำให้พื้นที่เมืองมีโอกาสเกิดน้ำรอระบายรวดเร็ว</p></article>
+        <article class="scenario-card"><span>03</span><h3>น้ำป่า + ดินโคลนถล่ม</h3><b>ภาคเหนือภูเขา + อันดามัน</b><p>เมื่อดินอิ่มน้ำและมีพายุเข้า ความเสี่ยงน้ำหลากฉับพลันและดินถล่มเพิ่มขึ้นในพื้นที่ลาดชัน</p></article>
+      </div>
+    </section>
+
+    <section class="card source-card">
+      <div><h3>หลักการข้อมูลของระบบนี้</h3><p>ค่าประวัติใช้เฉพาะข้อมูลที่มีในต้นแบบที่คุณส่งมา หากฟิลด์ใดไม่มีข้อมูลยืนยัน ระบบจะแสดง “ไม่มีข้อมูลยืนยัน” แทนการใส่ 0 หรือสร้างตัวเลขขึ้นเอง ส่วนข้อมูลฝนล่าสุดมาจาก Open-Meteo และอัปเดตเป็นระยะ</p></div>
+      <div class="source-links"><a href="https://disaster.gistda.or.th/" target="_blank" rel="noreferrer">GISTDA ↗</a><a href="https://www.thaiwater.net/" target="_blank" rel="noreferrer">ThaiWater ↗</a></div>
+    </section>
+  </main>
+  <footer><b>ThaiFlood Intelligence</b><span>Historical recurrence first • Current rain second</span></footer>
+</div>
+<script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -1,13 +1,1 @@
-{
-  "name": "thai-flood-pro",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vercel dev",
-    "start": "vercel dev"
-  },
-  "engines": {
-    "node": ">=20"
-  }
-}
+{"name":"thaiflood-pattern-v2","version":"2.0.0","private":true,"type":"module"}
