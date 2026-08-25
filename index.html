@@ -9,14 +9,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div id="app" class="app-shell">
   <header class="topbar">
     <a class="brand" href="#overview"><span class="brand-mark">≈</span><span><b>ThaiFlood</b><em>INTELLIGENCE</em></span></a>
     <nav class="desktop-nav">
-      <a href="#overview">ภาพรวม</a><a href="#hotspots">ท่วมซ้ำซาก</a><a href="#province">เจาะจังหวัด</a><a href="#projection">ฉากทัศน์ 2569</a>
+      <a href="#overview">ภาพรวม</a>
+      <a href="#hotspots">ท่วมซ้ำซาก</a>
+      <a href="#projection">ฉากทัศน์ 2569</a>
     </nav>
     <button id="refreshBtn" class="icon-btn" title="อัปเดตข้อมูล">↻</button>
   </header>
@@ -32,14 +36,18 @@
     </section>
 
     <section class="search-strip">
-      <div class="search-wrap">
-        <span>⌕</span><input id="provinceSearch" autocomplete="off" placeholder="ค้นหาจังหวัด / อำเภอ เช่น เชียงใหม่, หาดใหญ่, บางบาล..." />
-        <div id="searchResults" class="search-results" hidden></div>
-      </div>
-      <button id="recurringOnlyBtn" class="filter-btn active">● เฉพาะท่วมซ้ำซาก</button>
+      <button id="openSearchBtn" class="search-trigger" type="button">
+        <span class="search-trigger-icon">⌕</span>
+        <span class="search-trigger-copy">ค้นหาจังหวัด / อำเภอ เช่น เชียงใหม่, หาดใหญ่, บางบาล...</span>
+      </button>
+      <button id="recurringOnlyBtn" class="filter-btn active" type="button">● เฉพาะท่วมซ้ำซาก</button>
     </section>
 
-    <div id="errorBanner" class="error-banner" hidden><b>ข้อมูลบางส่วนโหลดไม่สำเร็จ</b><span id="errorText"></span><button id="errorRetry">ลองใหม่</button></div>
+    <div id="errorBanner" class="error-banner" hidden>
+      <b>ข้อมูลบางส่วนโหลดไม่สำเร็จ</b>
+      <span id="errorText"></span>
+      <button id="errorRetry" type="button">ลองใหม่</button>
+    </div>
 
     <section class="headline-stats" id="headlineStats">
       <article><span>พื้นที่ท่วมซ้ำซากในชุดอ้างอิง</span><strong id="repeatAreaCount">—</strong><small>จังหวัด</small></article>
@@ -48,14 +56,57 @@
       <article><span>สัญญาณฝนวันนี้สูงสุด</span><strong id="maxRainToday">—</strong><small>มม. • ข้อมูลเสริม</small></article>
     </section>
 
+    <section class="card quick-hotspots-card">
+      <div class="section-head">
+        <div>
+          <p class="kicker">QUICK HOTSPOTS</p>
+          <h2>พื้นที่ที่ควรเปิดดูทันที</h2>
+          <p>แตะชื่อจังหวัดเพื่อเปิดหน้าต่างสรุปเชิงลึกทันที โดยไม่ต้องเลื่อนลงไปด้านล่าง</p>
+        </div>
+      </div>
+      <div id="hotspotChips" class="hotspot-chip-list"></div>
+    </section>
+
+    <section class="analytics-grid">
+      <article class="card analytics-card">
+        <div class="section-head"><div><p class="kicker">RECURRENCE RANKING</p><h2>อันดับจังหวัดท่วมซ้ำซาก</h2><p>สรุปจากชุดอ้างอิง 11 ปี และใช้เพื่อคัดกรองจังหวัดที่ควรเจาะก่อน</p></div></div>
+        <div class="chart-box"><canvas id="recurrenceChart"></canvas></div>
+      </article>
+      <article class="card analytics-card official-source-card">
+        <div class="section-head"><div><p class="kicker">OFFICIAL DATA</p><h2>ข้อมูล ปภ. ที่เชื่อมอัตโนมัติ</h2><p>เมื่อเปิดจังหวัด ระบบจะเรียก CKAN Data API ของกรมป้องกันและบรรเทาสาธารณภัยโดยตรง</p></div></div>
+        <div class="official-status-grid">
+          <div><span>ช่วงข้อมูลทางการ</span><strong>2562–2568</strong><small>สถิติรายปีการเกิดอุทกภัย</small></div>
+          <div><span>ระดับพื้นที่</span><strong>ถึงหมู่บ้าน</strong><small>ตามขอบเขตชุดข้อมูล ปภ.</small></div>
+          <div><span>การอัปเดต</span><strong>อัตโนมัติ</strong><small>Cache 6 ชม. ต่อจังหวัด</small></div>
+          <div><span>ข้อมูลปัจจุบัน</span><strong>ฝนล่าสุด</strong><small>Open-Meteo</small></div>
+        </div>
+      </article>
+    </section>
+
     <section id="hotspots" class="two-col">
       <article class="card map-card">
-        <div class="section-head"><div><p class="kicker">RECURRENCE MAP</p><h2>แผนที่ “ท่วมซ้ำ” จากประวัติ 11 ปี</h2><p>ขนาดจุด = จำนวนครั้งที่บันทึก • สีเข้ม = ซ้ำบ่อย</p></div><span class="source-chip">2558–2568</span></div>
-        <div class="map-wrap"><svg id="historyMap" viewBox="0 0 620 720" aria-label="แผนที่พื้นที่น้ำท่วมซ้ำซาก"></svg><div class="map-note">แตะจุดเพื่อเจาะจังหวัด</div></div>
+        <div class="section-head">
+          <div>
+            <p class="kicker">RECURRENCE MAP</p>
+            <h2>แผนที่ “ท่วมซ้ำ” จากประวัติ 11 ปี</h2>
+            <p>ใช้แผนที่ประเทศไทยจริง • ขนาดจุด = จำนวนครั้งที่บันทึก • แตะจุดเพื่อเปิดข้อมูลจังหวัด</p>
+          </div>
+          <div class="map-mode-group"><button id="mapModeHistory" class="map-mode-btn active" type="button">ท่วมซ้ำ</button><button id="mapModeRain" class="map-mode-btn" type="button">ฝนวันนี้</button></div>
+        </div>
+        <div class="map-wrap map-wrap--leaflet">
+          <div id="historyMap" class="leaflet-map" aria-label="แผนที่ประเทศไทยพร้อมจุดท่วมซ้ำ"></div>
+          <div class="map-note">แตะจุดบนแผนที่เพื่อเปิดหน้าต่างจังหวัด</div>
+        </div>
       </article>
 
       <article class="card ranking-card">
-        <div class="section-head"><div><p class="kicker">TOP HOTSPOTS</p><h2>จังหวัดท่วมซ้ำซากมากที่สุด</h2><p>เรียงจากจำนวนครั้งที่ปรากฏในชุดข้อมูลอ้างอิง</p></div></div>
+        <div class="section-head">
+          <div>
+            <p class="kicker">TOP HOTSPOTS</p>
+            <h2>จังหวัดท่วมซ้ำซากมากที่สุด</h2>
+            <p>เรียงจากจำนวนครั้งที่ปรากฏในชุดข้อมูลอ้างอิง</p>
+          </div>
+        </div>
         <div id="rankingList" class="ranking-list"></div>
       </article>
     </section>
@@ -66,54 +117,22 @@
         <label>ภูมิภาค<select id="regionFilter"><option value="all">ทุกภูมิภาค</option><option>เหนือ</option><option>กลาง</option><option>อีสาน</option><option>ตะวันออก</option><option>ตะวันตก</option><option>ใต้</option></select></label>
         <label>จำนวนครั้ง<select id="frequencyFilter"><option value="all">ทั้งหมด</option><option value="4">4 ครั้งขึ้นไป</option><option value="5">5 ครั้งขึ้นไป</option><option value="6">6 ครั้งขึ้นไป</option></select></label>
         <label>รูปแบบ<select id="mechanismFilter"><option value="all">ทุกสาเหตุ</option><option value="urban">น้ำท่วมเมือง</option><option value="river">น้ำล้นตลิ่ง</option><option value="flash">น้ำป่า/น้ำหลาก</option></select></label>
-        <button id="resetFilters" class="secondary-btn">รีเซ็ต</button>
+        <button id="resetFilters" class="secondary-btn" type="button">รีเซ็ต</button>
       </div>
     </section>
 
-    <section id="province" class="province-layout">
-      <article class="card province-summary">
-        <div class="province-title-row"><div><p class="kicker">PROVINCE DEEP DIVE</p><h2 id="selectedName">เชียงใหม่</h2><span id="selectedRegion" class="region-chip">ภาคเหนือ</span></div><div id="recurrenceBadge" class="recurrence-badge"><small>ท่วมซ้ำ</small><strong>—</strong><span>ครั้ง / 11 ปี</span></div></div>
-        <div class="mini-tabs" role="tablist"><button class="tab-btn active" data-tab="pattern">รูปแบบ 11 ปี</button><button class="tab-btn" data-tab="events">เหตุการณ์รายปี</button><button class="tab-btn" data-tab="signals">สัญญาณวันนี้</button></div>
-        <div id="tabPattern" class="tab-panel active">
-          <div class="metric-grid">
-            <div><span>ความถี่ที่บันทึก</span><strong id="metricRecurrence">—</strong><small>ครั้ง / 11 ปี</small></div>
-            <div><span>ระดับน้ำสูงสุดที่มีข้อมูล</span><strong id="metricWater">—</strong><small>เมตร</small></div>
-            <div><span>ความเสียหายที่มีข้อมูล</span><strong id="metricDamage">—</strong><small>ล้านบาท</small></div>
-            <div><span>งบช่วยเหลือที่มีข้อมูล</span><strong id="metricAid">—</strong><small>ล้านบาท</small></div>
-          </div>
-          <div class="pattern-grid">
-            <div class="pattern-box"><h3>จุดที่ต้องจับตา</h3><div id="hotspotTags" class="tags"></div></div>
-            <div class="pattern-box"><h3>กลไก/รูปแบบที่สัมพันธ์</h3><div id="mechanismTags" class="tags"></div></div>
-          </div>
-          <div class="action-box"><b>Pattern Insight (ข้อสังเกตรูปแบบ)</b><p id="patternInsight">—</p></div>
+    <section class="card methodology-card">
+      <div class="section-head">
+        <div>
+          <p class="kicker">HOW TO READ</p>
+          <h2>หลักการอ่านข้อมูลในระบบนี้</h2>
         </div>
-        <div id="tabEvents" class="tab-panel">
-          <div class="timeline-head"><b>Year-by-Year Incident Matrix (เหตุการณ์รายปี)</b><span>2558 → 2568</span></div>
-          <div id="yearMatrix" class="year-matrix"></div>
-          <div id="eventDetails" class="event-details"></div>
-        </div>
-        <div id="tabSignals" class="tab-panel">
-          <div class="signal-note">ข้อมูลฝนเป็น “สัญญาณปัจจุบัน” เท่านั้น ไม่ใช่ประวัติน้ำท่วมและไม่ใช่ประกาศเตือนภัยทางการ</div>
-          <div class="metric-grid signal-grid">
-            <div><span>ฝนวันนี้</span><strong id="rain24">—</strong><small>มม.</small></div>
-            <div><span>ฝนสะสม 3 วัน</span><strong id="rain3">—</strong><small>มม.</small></div>
-            <div><span>โอกาสฝน</span><strong id="rainProb">—</strong><small>%</small></div>
-            <div><span>ดัชนีฝน</span><strong id="rainScore">—</strong><small>/ 100</small></div>
-          </div>
-          <div id="sevenDayBars" class="seven-day"></div>
-        </div>
-      </article>
-
-      <aside class="card decision-card">
-        <p class="kicker">DECISION LAYER</p><h2>ควรดูอะไร “ก่อนน้ำมา”</h2>
-        <ol>
-          <li><b>ดูพื้นที่ที่ท่วมซ้ำ</b><span>จุดเดิมที่เกิดบ่อยต้องได้ลำดับเฝ้าระวังก่อน</span></li>
-          <li><b>ดูสาเหตุเดิม</b><span>ทางน้ำถูกบล็อก ระบายไม่ทัน น้ำล้นตลิ่ง หรือน้ำป่า</span></li>
-          <li><b>ซ้อนสัญญาณวันนี้</b><span>ฝนสะสม + ความเข้มฝน + ปริมาณน้ำต้นทาง</span></li>
-          <li><b>เปลี่ยนเป็น Action</b><span>เคลียร์ทางน้ำ เตรียมเครื่องสูบ ปิดเส้นทางเสี่ยง แจ้งชุมชน</span></li>
-        </ol>
-        <div class="confidence-box"><small>DATA CONFIDENCE</small><strong id="confidenceLabel">—</strong><p id="confidenceText">—</p></div>
-      </aside>
+      </div>
+      <div class="method-grid">
+        <article><b>1) เริ่มจาก “ท่วมซ้ำ”</b><p>จังหวัดที่เกิดซ้ำควรถูกเปิดดูเป็นอันดับแรก เพราะบอกความเสี่ยงเชิงโครงสร้าง ไม่ใช่ความเสี่ยงจากฝนวันเดียว</p></article>
+        <article><b>2) ดู “เหตุการณ์รายปี”</b><p>ถ้ามีเหตุการณ์รายปี ระบบจะเปิดเผยปี สาเหตุ พื้นที่เด่น ความเสียหาย และผลกระทบเชิงพื้นที่</p></article>
+        <article><b>3) ดู “สัญญาณวันนี้”</b><p>ฝนล่าสุดเป็นตัวเสริมการตัดสินใจ ไม่ใช่คำยืนยันว่าจะเกิดน้ำท่วมแน่นอน</p></article>
+      </div>
     </section>
 
     <section id="projection" class="projection-section">
@@ -126,12 +145,136 @@
     </section>
 
     <section class="card source-card">
-      <div><h3>หลักการข้อมูลของระบบนี้</h3><p>ค่าประวัติใช้เฉพาะข้อมูลที่มีในต้นแบบที่คุณส่งมา หากฟิลด์ใดไม่มีข้อมูลยืนยัน ระบบจะแสดง “ไม่มีข้อมูลยืนยัน” แทนการใส่ 0 หรือสร้างตัวเลขขึ้นเอง ส่วนข้อมูลฝนล่าสุดมาจาก Open-Meteo และอัปเดตเป็นระยะ</p></div>
-      <div class="source-links"><a href="https://disaster.gistda.or.th/" target="_blank" rel="noreferrer">GISTDA ↗</a><a href="https://www.thaiwater.net/" target="_blank" rel="noreferrer">ThaiWater ↗</a></div>
+      <div>
+        <h3>หลักการข้อมูลของระบบนี้</h3>
+        <p>ข้อมูลประวัติในเดโมชุดนี้ยึดจากต้นแบบและภาพอ้างอิงที่คุณให้มา พร้อมออกแบบโครงสร้างให้รองรับการเติมฐานข้อมูลจริงจากหน่วยงานทางการภายหลังได้ทันที หากฟิลด์ใดไม่มีข้อมูลยืนยัน ระบบจะแสดง “ไม่มีข้อมูลยืนยัน” แทนการเติม 0 หรือสร้างตัวเลขขึ้นเอง ส่วนข้อมูลฝนล่าสุดมาจาก Open-Meteo และใช้เพื่อเป็นสัญญาณเสริมเท่านั้น</p>
+      </div>
+      <div class="source-links">
+        <a href="https://disaster.gistda.or.th/" target="_blank" rel="noreferrer">GISTDA ↗</a>
+        <a href="https://www.thaiwater.net/" target="_blank" rel="noreferrer">ThaiWater ↗</a>
+      </div>
     </section>
   </main>
   <footer><b>ThaiFlood Intelligence</b><span>Historical recurrence first • Current rain second</span></footer>
 </div>
+
+<div id="searchModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close="search"></div>
+  <div class="modal-panel modal-panel--search">
+    <div class="modal-head">
+      <div>
+        <p class="kicker">SEARCH</p>
+        <h2>ค้นหาจังหวัด / อำเภอ</h2>
+      </div>
+      <button class="modal-close" id="closeSearchModal" type="button">×</button>
+    </div>
+    <div class="modal-search-box">
+      <span>⌕</span>
+      <input id="searchModalInput" type="text" autocomplete="off" placeholder="พิมพ์ชื่อจังหวัด อำเภอ หรือจุดเสี่ยง เช่น เชียงใหม่, บางบาล, หาดใหญ่" />
+    </div>
+    <div id="modalSearchResults" class="modal-search-results"></div>
+  </div>
+</div>
+
+<div id="provinceModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close="province"></div>
+  <div class="modal-panel modal-panel--province">
+    <div class="modal-head sticky-head">
+      <div>
+        <p class="kicker">PROVINCE DEEP DIVE</p>
+        <h2 id="selectedName">—</h2>
+        <span id="selectedRegion" class="region-chip">—</span>
+      </div>
+      <div class="modal-head-actions">
+        <div id="recurrenceBadge" class="recurrence-badge"><small>ท่วมซ้ำ</small><strong>—</strong><span>ครั้ง / 11 ปี</span></div>
+        <button class="modal-close" id="closeProvinceModal" type="button">×</button>
+      </div>
+    </div>
+
+    <div class="province-modal-layout">
+      <section class="province-main-block">
+        <div class="mini-tabs" role="tablist">
+          <button class="tab-btn active" data-tab="pattern" type="button">รูปแบบ 11 ปี</button>
+          <button class="tab-btn" data-tab="events" type="button">เหตุการณ์รายปี</button>
+          <button class="tab-btn" data-tab="signals" type="button">สัญญาณวันนี้</button>
+          <button class="tab-btn" data-tab="official" type="button">ข้อมูล ปภ.</button>
+        </div>
+
+        <div id="tabPattern" class="tab-panel active">
+          <div class="metric-grid">
+            <div><span>ความถี่ที่บันทึก</span><strong id="metricRecurrence">—</strong><small>ครั้ง / 11 ปี</small></div>
+            <div><span>ระดับน้ำสูงสุดที่มีข้อมูล</span><strong id="metricWater">—</strong><small>เมตร</small></div>
+            <div><span>ความเสียหายที่มีข้อมูล</span><strong id="metricDamage">—</strong><small>ล้านบาท</small></div>
+            <div><span>งบช่วยเหลือที่มีข้อมูล</span><strong id="metricAid">—</strong><small>ล้านบาท</small></div>
+          </div>
+
+          <div class="metric-grid metric-grid--secondary">
+            <div><span>เกษตรเสียหายรวม</span><strong id="metricAgri">—</strong><small>ไร่</small></div>
+            <div><span>ครัวเรือนที่มีข้อมูล</span><strong id="metricHouseholds">—</strong><small>ครัวเรือน</small></div>
+            <div><span>งบชดเชยเกษตร</span><strong id="metricCropAid">—</strong><small>ล้านบาท</small></div>
+            <div><span>จำนวนเหตุการณ์ที่มีรายละเอียด</span><strong id="metricEventCount">—</strong><small>เหตุการณ์</small></div>
+          </div>
+
+          <div class="pattern-grid">
+            <div class="pattern-box"><h3>จุดที่ต้องจับตา</h3><div id="hotspotTags" class="tags"></div></div>
+            <div class="pattern-box"><h3>กลไก/รูปแบบที่สัมพันธ์</h3><div id="mechanismTags" class="tags"></div></div>
+          </div>
+          <div class="action-box"><b>Pattern Insight (ข้อสังเกตรูปแบบ)</b><p id="patternInsight">—</p></div>
+        </div>
+
+        <div id="tabEvents" class="tab-panel">
+          <div class="timeline-head"><b>Year-by-Year Incident Matrix (เหตุการณ์รายปี)</b><span id="yearWindowText">2558 → 2568</span></div>
+          <div id="yearMatrix" class="year-matrix"></div>
+          <div id="eventDetails" class="event-details"></div>
+        </div>
+
+        <div id="tabSignals" class="tab-panel">
+          <div class="signal-note">ข้อมูลฝนเป็น “สัญญาณปัจจุบัน” เท่านั้น ไม่ใช่ประวัติน้ำท่วมและไม่ใช่ประกาศเตือนภัยทางการ</div>
+          <div class="metric-grid signal-grid">
+            <div><span>ฝนวันนี้</span><strong id="rain24">—</strong><small>มม.</small></div>
+            <div><span>ฝนสะสม 3 วัน</span><strong id="rain3">—</strong><small>มม.</small></div>
+            <div><span>โอกาสฝน</span><strong id="rainProb">—</strong><small>%</small></div>
+            <div><span>ดัชนีฝน</span><strong id="rainScore">—</strong><small>/ 100</small></div>
+          </div>
+          <div id="sevenDayBars" class="seven-day"></div>
+        </div>
+
+        <div id="tabOfficial" class="tab-panel">
+          <div class="official-headline">
+            <div><p class="kicker">DDPM OPEN DATA</p><h3>สถิติรายปีการเกิดอุทกภัยจาก ปภ.</h3><p>โหลดข้อมูลทางการของจังหวัดนี้แบบอัตโนมัติผ่าน CKAN Data API ครอบคลุมปี 2562–2568</p></div>
+            <a href="https://catalog.disaster.go.th/dataset/dpm-gd027" target="_blank" rel="noreferrer">เปิดแหล่งข้อมูล ↗</a>
+          </div>
+          <div id="officialLoading" class="official-loading">กำลังโหลดข้อมูลทางการ...</div>
+          <div id="officialError" class="official-error" hidden></div>
+          <div id="officialContent" hidden>
+            <div class="metric-grid official-metrics">
+              <div><span>ปีที่พบข้อมูล</span><strong id="officialYears">—</strong><small>ปี</small></div>
+              <div><span>ครัวเรือนที่มีข้อมูล</span><strong id="officialHouseholds">—</strong><small>ครัวเรือน</small></div>
+              <div><span>พื้นที่เกษตรที่มีข้อมูล</span><strong id="officialAgri">—</strong><small>ไร่</small></div>
+              <div><span>ความเสียหายรวมที่มีข้อมูล</span><strong id="officialDamage">—</strong><small>ล้านบาท</small></div>
+            </div>
+            <div class="chart-box chart-box--official"><canvas id="officialYearChart"></canvas></div>
+            <div class="official-district-block"><h4>อำเภอที่พบในข้อมูลทางการ</h4><div id="officialDistrictTags" class="tags"></div></div>
+            <div id="officialYearCards" class="official-year-cards"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="decision-card decision-card--modal">
+        <p class="kicker">DECISION LAYER</p><h2>ควรดูอะไร “ก่อนน้ำมา”</h2>
+        <ol>
+          <li><b>ดูพื้นที่ที่ท่วมซ้ำ</b><span>จุดเดิมที่เกิดบ่อยต้องได้ลำดับเฝ้าระวังก่อน</span></li>
+          <li><b>ดูสาเหตุเดิม</b><span>ทางน้ำถูกบล็อก ระบายไม่ทัน น้ำล้นตลิ่ง หรือน้ำป่า</span></li>
+          <li><b>ซ้อนสัญญาณวันนี้</b><span>ฝนสะสม + ความเข้มฝน + ปริมาณน้ำต้นทาง</span></li>
+          <li><b>เปลี่ยนเป็น Action</b><span>เคลียร์ทางน้ำ เตรียมเครื่องสูบ ปิดเส้นทางเสี่ยง แจ้งชุมชน</span></li>
+        </ol>
+        <div class="confidence-box"><small>DATA CONFIDENCE</small><strong id="confidenceLabel">—</strong><p id="confidenceText">—</p></div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script type="module" src="/app.js"></script>
 </body>
 </html>
