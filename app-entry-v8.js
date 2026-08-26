@@ -45,15 +45,9 @@ function patchStaticCopyEarly() {
   const label = select?.closest('label');
   if (label?.firstChild?.nodeType === Node.TEXT_NODE) label.firstChild.textContent = 'จำนวนอำเภอท่วมซ้ำ';
   select?.querySelectorAll('option').forEach(option => {
-    if (option.value === 'all') option.textContent = 'ทั้งหมด';
-    else option.textContent = `${option.value} อำเภอขึ้นไป`;
+    option.textContent = option.value === 'all' ? 'ทั้งหมด' : `${option.value} อำเภอขึ้นไป`;
   });
 }
-
-hideRecurrenceUi();
-patchStaticCopyEarly();
-
-await import('/app-entry-v7.js?v=20260826-dashboard-spatial-final1');
 
 function historyColor(n) {
   if (n >= 18) return '#c93648';
@@ -63,24 +57,40 @@ function historyColor(n) {
 }
 
 function scaledRadius(n) {
-  return Math.max(7, Math.min(24, 6 + Math.sqrt(Math.max(0, n)) * 3));
+  return Math.max(7, Math.min(24, 6 + Math.sqrt(Math.max(0, Number(n || 0))) * 3));
 }
 
-function patchHistoryMapMarkers() {
-  if (!document.querySelector('#mapModeHistory')?.classList.contains('active')) return;
-  document.querySelectorAll('#historyMap .leaflet-overlay-pane circle').forEach(circle => {
-    if (circle.dataset.tfSpatialMarker === '1') return;
-    const oldRadius = Number(circle.getAttribute('r'));
-    if (!Number.isFinite(oldRadius)) return;
-
-    // app-core legacy radius: max(7, 7 + ((count - 3) * 2.5)).
-    // r=7 is the legacy floor for counts 1-3; all other values can be inverted exactly.
-    const count = oldRadius <= 7.01 ? 3 : Math.max(0, Math.round((oldRadius + 0.5) / 2.5));
-    circle.setAttribute('r', scaledRadius(count).toFixed(1));
-    circle.setAttribute('fill', historyColor(count));
-    circle.dataset.tfSpatialMarker = '1';
-  });
+function findSpatialByLatLng(latlng) {
+  const lat = Number(Array.isArray(latlng) ? latlng[0] : latlng?.lat);
+  const lon = Number(Array.isArray(latlng) ? latlng[1] : (latlng?.lng ?? latlng?.lon));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return (window.__tfNationalSpatial?.provinces || []).find(p =>
+    Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)) &&
+    Math.abs(Number(p.lat) - lat) < 0.00001 && Math.abs(Number(p.lon) - lon) < 0.00001
+  ) || null;
 }
+
+// app-core was originally tuned for values around 3-7. Wrap Leaflet before app-core loads
+// so the refreshed history map uses the exact recurring-district count without giant circles.
+const nativeCircleMarker = window.L?.circleMarker?.bind(window.L);
+if (nativeCircleMarker) {
+  window.L.circleMarker = (latlng, options = {}) => {
+    const next = { ...options };
+    const historyMode = document.querySelector('#mapModeHistory')?.classList.contains('active');
+    const spatial = historyMode ? findSpatialByLatLng(latlng) : null;
+    if (spatial) {
+      const count = Number(spatial.recurringDistrictCount || 0);
+      next.radius = scaledRadius(count);
+      next.fillColor = historyColor(count);
+    }
+    return nativeCircleMarker(latlng, next);
+  };
+}
+
+hideRecurrenceUi();
+patchStaticCopyEarly();
+
+await import('/app-entry-v7.js?v=20260826-dashboard-spatial-final2');
 
 function patchFilterCopy() {
   const select = document.querySelector('#frequencyFilter');
@@ -99,7 +109,6 @@ function patchFinalUi() {
   queued = false;
   patchStaticCopyEarly();
   patchFilterCopy();
-  patchHistoryMapMarkers();
 }
 function queueFinalUi() {
   if (queued) return;
@@ -108,8 +117,6 @@ function queueFinalUi() {
 }
 
 const finalObserver = new MutationObserver(queueFinalUi);
-const mapRoot = document.querySelector('#historyMap');
-if (mapRoot) finalObserver.observe(mapRoot, { subtree:true, childList:true });
 const filterRoot = document.querySelector('.compact-filter-card');
 if (filterRoot) finalObserver.observe(filterRoot, { subtree:true, childList:true, characterData:true });
 
