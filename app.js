@@ -310,14 +310,14 @@ function renderYears(p) {
         <div class="event-year">พ.ศ. ${e.year}</div>
         <div class="event-title">
           <b>${e.areas || 'พื้นที่ที่บันทึก'}</b>
-          <small>${e.severityLabel || (e.severity === 'critical' ? 'วิกฤต' : 'เหตุการณ์ที่บันทึก')}</small>
+          <small>${e.severityLabel || (e.severity === 'critical' ? 'วิกฤต' : 'ข้อมูล ปภ. ที่บันทึกในปีนี้')}</small>
         </div>
       </div>
       <div class="event-kpis">
         <article>
           <span>ความเสียหายรวม</span>
           <strong>${fmtLoose(e.damageM)} ล้านบาท</strong>
-          <p>${e.households != null ? `ครัวเรือนที่ได้รับผลกระทบ ${fmt(e.households)} ครัวเรือน` : 'หากไม่มีฟิลด์บางตัว ระบบจะไม่เติมเลขแทนเอง'}</p>
+          <p>${e.households != null ? `ผลรวมครัวเรือนตามระเบียน ปภ. ${fmt(e.households)} ครัวเรือน` : 'หากไม่มีฟิลด์บางตัว ระบบจะไม่เติมเลขแทนเอง'}</p>
         </article>
         <article>
           <span>เกษตรที่ได้รับผลกระทบ</span>
@@ -429,14 +429,14 @@ function applyOfficialDeepDive(p, data) {
   const years = data.years || [];
   const sm = data.summary || {};
   const show = (value, digits = 0) => value == null ? 'ไม่มีข้อมูล' : fmt(value, digits);
-  $('#recurrenceBadge').innerHTML = `<small>ปีที่พบเหตุการณ์ ปภ.</small><strong>${show(sm.officialYearsWithRecords)}</strong><span>ปี / ${data.coverage?.start || 2562}–${data.coverage?.end || 2568}</span>`;
+  $('#recurrenceBadge').innerHTML = `<small>ปีที่พบระเบียน ปภ.</small><strong>${show(sm.officialYearsWithRecords)}</strong><span>ปี / ${data.coverage?.start || 2562}–${data.coverage?.end || 2568}</span>`;
   $('#metricRecurrence').textContent = show(sm.officialYearsWithRecords);
   $('#metricWater').textContent = 'ไม่มีข้อมูล';
   $('#metricDamage').textContent = show(sm.totalDamageM, 1);
   $('#metricAid').textContent = show(sm.reliefBudgetM, 1);
   $('#metricAgri').textContent = show(sm.agriRai);
   $('#metricHouseholds').textContent = show(sm.households);
-  $('#metricCropAid').textContent = show(sm.reliefBudgetM, 1);
+  $('#metricCropAid').textContent = show(sm.cropCompensationM, 1);
   $('#metricEventCount').textContent = show(years.reduce((total, y) => total + Number(y.recordCount || 0), 0));
 
   renderTags($('#hotspotTags'), sm.districts || [], true);
@@ -453,7 +453,7 @@ function applyOfficialDeepDive(p, data) {
     agriRai: y.agriRai,
     damageM: y.totalDamageM,
     aidM: y.reliefBudgetM,
-    cropAidM: y.reliefBudgetM,
+    cropAidM: y.cropCompensationM,
     cause: (y.causes || []).join(' • ') || null,
     impact: (y.descriptions || []).join(' • ') || null,
     note: `${y.recordCount || 0} ระเบียนจาก DDPM Open Data`,

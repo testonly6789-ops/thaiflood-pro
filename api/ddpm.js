@@ -119,6 +119,14 @@ function parseRecord(record, year) {
     [/description/i,/incidentdetail/i,/รายละเอียด.*เหตุการณ์/i,/สถานการณ์(?!date)/i]));
   const reliefBudgetThb = num(valueOf(record,
     [/reliefbudget/i,/compensation/i,/assistancebudget/i,/งบ.*ช่วยเหลือ/i,/เงิน.*ชดเชย/i,/งบ.*เยียวยา/i]));
+  // Keep crop/agriculture compensation distinct from general relief. A value is
+  // only exposed when the CKAN column itself explicitly identifies that scope.
+  const cropCompensationThb = num(valueOf(record, [
+    /cropcompensation/i,
+    /agri(?:cultural)?compensation/i,
+    /(?:เงิน|งบ).*ชดเชย.*(?:เกษตร|พืช)/i,
+    /(?:เกษตร|พืช).*(?:เงิน|งบ).*ชดเชย/i,
+  ]));
 
   const dates = {
     situation: valueOf(record, [/situationdate/i,/วันที่.*สถานการณ์/i]),
@@ -131,7 +139,7 @@ function parseRecord(record, year) {
     year, province, district, subdistrict,
     households, population, deaths, missing, injured,
     totalDamageThb, agriDamageThb, housingDamageThb, economicDamageThb, publicDamageThb,
-    agriRai, affectedArea, cause, description, reliefBudgetThb, dates,
+    agriRai, affectedArea, cause, description, reliefBudgetThb, cropCompensationThb, dates,
     raw: record,
   };
 }
@@ -196,6 +204,8 @@ function aggregateYear(rows, year, requestedProvince) {
     agriRai: sum('agriRai'),
     reliefBudgetThb: sum('reliefBudgetThb'),
     reliefBudgetM: sum('reliefBudgetThb') == null ? null : sum('reliefBudgetThb') / 1_000_000,
+    cropCompensationThb: sum('cropCompensationThb'),
+    cropCompensationM: sum('cropCompensationThb') == null ? null : sum('cropCompensationThb') / 1_000_000,
     totalDamageThb,
     totalDamageM: totalDamageThb == null ? null : totalDamageThb / 1_000_000,
     agriDamageThb,
@@ -258,6 +268,7 @@ export default async function handler(req, res) {
       totalDamageM: sum('totalDamageM'),
       agriDamageM: sum('agriDamageM'),
       reliefBudgetM: sum('reliefBudgetM'),
+      cropCompensationM: sum('cropCompensationM'),
     },
     years,
   });

@@ -54,8 +54,23 @@ test('aggregates only confirmed official values and preserves descriptions', () 
   assert.deepEqual(result.districts, ['เมืองเชียงใหม่']);
   assert.equal(result.households, 15);
   assert.equal(result.totalDamageM, null);
+  assert.equal(result.cropCompensationM, null);
   assert.deepEqual(result.causes, ['น้ำล้นตลิ่ง']);
   assert.deepEqual(result.descriptions, ['น้ำเข้าพื้นที่ลุ่มต่ำ']);
+});
+
+test('does not treat general relief as crop compensation', () => {
+  const general = aggregateYear([
+    { province: 'เชียงใหม่', district: 'เมืองเชียงใหม่', relief_budget: '2,000,000' },
+  ], 2568, 'เชียงใหม่');
+  assert.equal(general.reliefBudgetM, 2);
+  assert.equal(general.cropCompensationM, null);
+
+  const cropSpecific = aggregateYear([
+    { province: 'เชียงใหม่', district: 'เมืองเชียงใหม่', relief_budget: '2,000,000', crop_compensation: '500,000' },
+  ], 2568, 'เชียงใหม่');
+  assert.equal(cropSpecific.reliefBudgetM, 2);
+  assert.equal(cropSpecific.cropCompensationM, 0.5);
 });
 
 test('DDPM endpoint returns a usable deep-dive response for all 77 provinces', async (t) => {
