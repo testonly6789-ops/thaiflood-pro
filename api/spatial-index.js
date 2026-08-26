@@ -1,5 +1,5 @@
 import { provinces as provinceMeta } from './provinces.js';
-import { buildHistoricalProvince } from '../lib/historical-14y-engine.js';
+import { buildHistoricalProvince, probeGistdaSpatial } from '../lib/historical-14y-engine.js';
 
 // National same-district recurrence snapshot, verified against DDPM district-detail data.
 // Definition: same district reported in at least 2 comparable years.
@@ -53,9 +53,16 @@ const topProvince = ranked[0];
 export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
+  const province = String(req.query?.province || '').trim();
+
+  if (String(req.query?.gistdaProbe || '') === '1') {
+    if (!province) return res.status(400).json({ok:false,error:'กรุณาระบุจังหวัด'});
+    try { return res.status(200).json(await probeGistdaSpatial(province)); }
+    catch (error) { return res.status(500).json({ok:false,province,error:error?.message || String(error)}); }
+  }
+
   const historical14y = String(req.query?.historical14y || '') === '1';
   if (historical14y) {
-    const province = String(req.query?.province || '').trim();
     if (!province) return res.status(400).json({ok:false,error:'กรุณาระบุจังหวัด'});
     try {
       const payload = await buildHistoricalProvince(province);
