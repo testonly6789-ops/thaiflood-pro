@@ -1,10 +1,8 @@
 import { provinces as provinceMeta } from './provinces.js';
-import { buildHistoricalProvince, probeGistdaSpatial } from '../lib/historical-14y-engine.js';
-import { auditGistdaHistoricalSources } from '../lib/gistda-source-audit.js';
+import { buildHistoricalNational, buildHistoricalProvince, auditHistoricalSources } from '../lib/historical-14y-engine.js';
 
-// National same-district recurrence snapshot, verified against DDPM district-detail data.
-// Definition: same district reported in at least 2 comparable years.
-// Comparable years: B.E. 2563-2567. Snapshot regenerated and QC-checked on 2026-08-26.
+// Current production fallback snapshot (5 comparable DDPM district-detail years).
+// This remains the default until the 14-year source audit passes and the UI is switched.
 const SNAPSHOT_ROWS = [
   ['กรุงเทพมหานคร',12,2],['กระบี่',8,5],['กาญจนบุรี',13,5],['กาฬสินธุ์',18,5],['กำแพงเพชร',11,5],
   ['ขอนแก่น',23,5],['จันทบุรี',10,5],['ฉะเชิงเทรา',7,5],['ชลบุรี',7,5],['ชัยนาท',8,4],
@@ -53,32 +51,31 @@ const topProvince = ranked[0];
 
 export const config = { maxDuration: 60 };
 
+function historicalCache(res) {
+  res.setHeader('Cache-Control','public, max-age=300');
+  res.setHeader('CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
+  res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
+}
+
 export default async function handler(req, res) {
   const province = String(req.query?.province || '').trim();
 
   if (String(req.query?.sourceAudit || '') === '1') {
-    if (!province) return res.status(400).json({ok:false,error:'กรุณาระบุจังหวัด'});
-    try { return res.status(200).json(await auditGistdaHistoricalSources(province)); }
-    catch (error) { return res.status(500).json({ok:false,province,error:error?.message || String(error)}); }
-  }
-
-  if (String(req.query?.gistdaProbe || '') === '1') {
-    if (!province) return res.status(400).json({ok:false,error:'กรุณาระบุจังหวัด'});
-    try { return res.status(200).json(await probeGistdaSpatial(province)); }
-    catch (error) { return res.status(500).json({ok:false,province,error:error?.message || String(error)}); }
-  }
-
-  const historical14y = String(req.query?.historical14y || '') === '1';
-  if (historical14y) {
-    if (!province) return res.status(400).json({ok:false,error:'กรุณาระบุจังหวัด'});
     try {
-      const payload = await buildHistoricalProvince(province);
-      res.setHeader('Cache-Control','public, max-age=300');
-      res.setHeader('CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
-      res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
-      return res.status(200).json(payload);
+      historicalCache(res);
+      return res.status(200).json(await auditHistoricalSources());
     } catch (error) {
-      return res.status(500).json({ok:false,province,error:error?.message || String(error)});
+      return res.status(500).json({ok:false,error:error?.message || String(error)});
+    }
+  }
+
+  if (String(req.query?.historical14y || '') === '1') {
+    try {
+      historicalCache(res);
+      const payload = province ? await buildHistoricalProvince(province) : await buildHistoricalNational();
+      return res.status(payload.ok ? 200 : 503).json(payload);
+    } catch (error) {
+      return res.status(500).json({ok:false,province:province || null,error:error?.message || String(error)});
     }
   }
 
