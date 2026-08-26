@@ -1,5 +1,6 @@
 const SPATIAL_CACHE_KEY = 'thaiflood:spatial-recurrence-schema';
-const SPATIAL_CACHE_VERSION = 'v1-district-repeat';
+const SPATIAL_CACHE_VERSION = 'v2-ui-isolation';
+window.__tfSpatialMode = true;
 
 try {
   if (localStorage.getItem(SPATIAL_CACHE_KEY) !== SPATIAL_CACHE_VERSION) {
@@ -12,13 +13,12 @@ try {
   }
 } catch {}
 
-await import('/app-entry-v4.js?v=20260826-spatial1');
+await import('/app-entry-v4.js?v=20260826-spatial2');
 
-// Stop the older province-wide recurrence observers from writing into the same
-// visible elements. The legacy code still looks up the old IDs on later refreshes
-// and province changes, so after the takeover we provide hidden compatibility
-// targets for those old selectors. This prevents null.innerHTML crashes while
-// keeping the visible spatial-recurrence fields owned only by this layer.
+// Spatial recurrence is the only writer for the visible recurrence fields.
+// Legacy renderers keep their original selectors, so move those selectors to
+// hidden compatibility sinks instead of letting multiple observers fight over
+// the same visible DOM nodes.
 const badge = document.querySelector('#recurrenceBadge');
 if (badge) badge.id = 'spatialRecurrenceBadge';
 const metric = document.querySelector('#metricRecurrence');
@@ -27,6 +27,8 @@ const officialYears = document.querySelector('#officialYears');
 if (officialYears) officialYears.id = 'officialSpatialRecurrence';
 const yearMatrix = document.querySelector('#yearMatrix');
 if (yearMatrix) yearMatrix.id = 'spatialYearMatrix';
+const hotspotTags = document.querySelector('#hotspotTags');
+if (hotspotTags) hotspotTags.id = 'spatialHotspotTags';
 const patternInsight = document.querySelector('#patternInsight');
 if (patternInsight) patternInsight.id = 'spatialPatternInsight';
 const confidenceLabel = document.querySelector('#confidenceLabel');
@@ -41,28 +43,17 @@ function installLegacySelectorSinks() {
   sink.hidden = true;
   sink.setAttribute('aria-hidden', 'true');
   sink.innerHTML = `
-    <div id="recurrenceBadge"><small></small><strong></strong><span></span></div>
-    <div><span></span><strong id="metricRecurrence"></strong><small></small></div>
-    <div><span></span><strong id="officialYears"></strong><small></small></div>
-    <div id="yearMatrix"></div>
-    <p id="patternInsight"></p>
-    <b id="confidenceLabel"></b>
-    <p id="confidenceText"></p>`;
+    <div id="recurrenceBadge" hidden><small></small><strong></strong><span></span></div>
+    <div hidden><span></span><strong id="metricRecurrence"></strong><small></small></div>
+    <div hidden><span></span><strong id="officialYears"></strong><small></small></div>
+    <div id="yearMatrix" hidden></div>
+    <div id="hotspotTags" hidden></div>
+    <p id="patternInsight" hidden></p>
+    <b id="confidenceLabel" hidden></b>
+    <p id="confidenceText" hidden></p>`;
   document.body.appendChild(sink);
 }
 installLegacySelectorSinks();
-
-// The visible matrix keeps the click handlers that were attached before its ID
-// changed. Keep its active visual state in sync even though subsequent legacy
-// re-renders now write into the hidden compatibility matrix.
-const spatialMatrixElement = document.querySelector('#spatialYearMatrix');
-spatialMatrixElement?.addEventListener('click', (event) => {
-  const cell = event.target.closest('.year-cell');
-  if (!cell || !spatialMatrixElement.contains(cell)) return;
-  spatialMatrixElement.querySelectorAll('.year-cell').forEach(item => {
-    item.classList.toggle('active', item === cell);
-  });
-});
 
 function selectedName() {
   const name = document.querySelector('#selectedName')?.textContent?.trim();
@@ -81,21 +72,35 @@ function fmtYears(years) {
 function renderSpatialMatrix(data) {
   const box = document.querySelector('#spatialYearMatrix');
   if (!box || !data) return;
+  const start = Number(data.coverage?.start || 2562);
+  const end = Number(data.coverage?.end || 2568);
   const provinceYears = new Set((data.summary?.floodYearList || []).map(Number));
-  [...box.querySelectorAll('.year-cell')].forEach((cell, i) => {
-    const suffix = Number(cell.querySelector('b')?.textContent);
-    const year = Number.isFinite(suffix) ? 2500 + suffix : 2562 + i;
-    const span = cell.querySelector('span');
+  const yearWindowText = document.querySelector('#yearWindowText');
+  if (yearWindowText) yearWindowText.textContent = `${start} → ${end}`;
+
+  // Rebuild the visible matrix every time. The legacy matrix is now hidden, so
+  // reusing its old button closures would leave stale province/year state after
+  // a province switch or a slow initial recurrence-index load.
+  box.innerHTML = '';
+  for (let year = start; year <= end; year += 1) {
     const found = provinceYears.has(year);
-    if (span) span.textContent = found ? 'มีรายงาน' : 'ไม่พบ';
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = `year-cell ${found ? 'has-event' : ''}`;
+    cell.innerHTML = `<b>${String(year).slice(-2)}</b><span>${found ? 'มีรายงาน' : 'ไม่พบ'}</span>`;
     cell.title = found
       ? `พ.ศ. ${year} มีรายงานอุทกภัยระดับจังหวัดในชุดข้อมูล ปภ.`
       : `พ.ศ. ${year} ไม่พบรายงานอุทกภัยของจังหวัดในชุดข้อมูลที่เชื่อมต่อ`;
-  });
+    cell.addEventListener('click', () => {
+      box.querySelectorAll('.year-cell').forEach(item => item.classList.toggle('active', item === cell));
+      document.getElementById(`event-${year}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+    box.appendChild(cell);
+  }
 }
 
 function renderRecurringHotspots(data) {
-  const box = document.querySelector('#hotspotTags');
+  const box = document.querySelector('#spatialHotspotTags');
   if (!box || !data) return;
   const ranking = data.spatialRecurrence?.ranking || data.summary?.spatialRepeatTop || [];
   const recurring = ranking.filter(x => Number(x.yearCount || 0) >= 2).slice(0,6);
@@ -174,6 +179,19 @@ function applySpatialRecurrence() {
 
 let queued = false;
 let spatialObserver = null;
+const observerOptions = { subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['hidden'] };
+const observedTargets = [
+  document.querySelector('#selectedName'),
+  document.querySelector('#tfLegacySpatialSink'),
+  document.querySelector('#eventDetails'),
+  document.querySelector('#officialContent'),
+].filter(Boolean);
+
+function connectSpatialObserver() {
+  if (!spatialObserver) return;
+  observedTargets.forEach(el => spatialObserver.observe(el, observerOptions));
+}
+
 function queueSpatial() {
   if (queued) return;
   queued = true;
@@ -181,12 +199,12 @@ function queueSpatial() {
     queued = false;
     spatialObserver?.disconnect();
     try { applySpatialRecurrence(); }
-    finally { spatialObserver?.observe(document.body,{subtree:true,childList:true,characterData:true}); }
+    finally { connectSpatialObserver(); }
   });
 }
 
 spatialObserver = new MutationObserver(queueSpatial);
-spatialObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+connectSpatialObserver();
 setTimeout(queueSpatial,50);
 setTimeout(queueSpatial,500);
 setTimeout(queueSpatial,1600);
