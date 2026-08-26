@@ -72,6 +72,7 @@ function findSpatialByLatLng(latlng) {
 
 // app-core was originally tuned for values around 3-7. Wrap Leaflet before app-core loads
 // so the refreshed history map uses the exact recurring-district count without giant circles.
+window.__tfMapRadiusQC = window.__tfMapRadiusQC || {};
 const nativeCircleMarker = window.L?.circleMarker?.bind(window.L);
 if (nativeCircleMarker) {
   window.L.circleMarker = (latlng, options = {}) => {
@@ -80,8 +81,11 @@ if (nativeCircleMarker) {
     const spatial = historyMode ? findSpatialByLatLng(latlng) : null;
     if (spatial) {
       const count = Number(spatial.recurringDistrictCount || 0);
-      next.radius = scaledRadius(count);
-      next.fillColor = historyColor(count);
+      const radius = scaledRadius(count);
+      const fillColor = historyColor(count);
+      next.radius = radius;
+      next.fillColor = fillColor;
+      window.__tfMapRadiusQC[spatial.province] = { count, radius, fillColor };
     }
     return nativeCircleMarker(latlng, next);
   };
