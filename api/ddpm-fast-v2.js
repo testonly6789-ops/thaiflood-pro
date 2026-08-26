@@ -146,6 +146,7 @@ function aggregate(result) {
       occurrenceCount: sumRows(rows, f.occurrenceCount),
       districtCount: sumRows(rows, f.districtCount),
       districts: [],
+      allDistricts: [],
       subdistricts: [],
       affectedAreas: [],
       causes: [],
@@ -177,6 +178,7 @@ function aggregate(result) {
     occurrenceCount: null,
     districtCount: allDistricts.length,
     districts: allDistricts.slice(0, 5),
+    allDistricts,
     subdistricts: [],
     affectedAreas: [],
     causes,
@@ -216,7 +218,7 @@ export default async function handler(req, res) {
     const vals = allYears.map(y=>y[key]).filter(v=>v != null);
     return vals.length ? vals.reduce((a,b)=>a+b,0) : null;
   };
-  const districtNames = [...new Set(years.flatMap(y=>y.districts || []))].slice(0, 10);
+  const districtNames = [...new Set(years.flatMap(y=>y.allDistricts || y.districts || []))].slice(0, 10);
   const districtCount = Math.max(0, ...years.map(y=>Number(y.districtCount || 0)));
 
   res.setHeader('Cache-Control', 'public, max-age=60');
