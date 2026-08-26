@@ -15,8 +15,10 @@ try {
 await import('/app-entry-v4.js?v=20260826-spatial1');
 
 // Stop the older province-wide recurrence observers from writing into the same
-// elements. The legacy code looks up the old IDs on each run; renaming them
-// makes this spatial layer the only owner of these fields.
+// visible elements. The legacy code still looks up the old IDs on later refreshes
+// and province changes, so after the takeover we provide hidden compatibility
+// targets for those old selectors. This prevents null.innerHTML crashes while
+// keeping the visible spatial-recurrence fields owned only by this layer.
 const badge = document.querySelector('#recurrenceBadge');
 if (badge) badge.id = 'spatialRecurrenceBadge';
 const metric = document.querySelector('#metricRecurrence');
@@ -31,6 +33,36 @@ const confidenceLabel = document.querySelector('#confidenceLabel');
 if (confidenceLabel) confidenceLabel.id = 'spatialConfidenceLabel';
 const confidenceText = document.querySelector('#confidenceText');
 if (confidenceText) confidenceText.id = 'spatialConfidenceText';
+
+function installLegacySelectorSinks() {
+  if (document.querySelector('#tfLegacySpatialSink')) return;
+  const sink = document.createElement('div');
+  sink.id = 'tfLegacySpatialSink';
+  sink.hidden = true;
+  sink.setAttribute('aria-hidden', 'true');
+  sink.innerHTML = `
+    <div id="recurrenceBadge"><small></small><strong></strong><span></span></div>
+    <div><span></span><strong id="metricRecurrence"></strong><small></small></div>
+    <div><span></span><strong id="officialYears"></strong><small></small></div>
+    <div id="yearMatrix"></div>
+    <p id="patternInsight"></p>
+    <b id="confidenceLabel"></b>
+    <p id="confidenceText"></p>`;
+  document.body.appendChild(sink);
+}
+installLegacySelectorSinks();
+
+// The visible matrix keeps the click handlers that were attached before its ID
+// changed. Keep its active visual state in sync even though subsequent legacy
+// re-renders now write into the hidden compatibility matrix.
+const spatialMatrixElement = document.querySelector('#spatialYearMatrix');
+spatialMatrixElement?.addEventListener('click', (event) => {
+  const cell = event.target.closest('.year-cell');
+  if (!cell || !spatialMatrixElement.contains(cell)) return;
+  spatialMatrixElement.querySelectorAll('.year-cell').forEach(item => {
+    item.classList.toggle('active', item === cell);
+  });
+});
 
 function selectedName() {
   const name = document.querySelector('#selectedName')?.textContent?.trim();
