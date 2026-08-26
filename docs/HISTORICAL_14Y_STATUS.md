@@ -1,0 +1,1 @@
+Implementation status: backend engine added behind an opt-in query on the existing spatial-index function. Production dashboard behavior is unchanged until calibration passes. Preview build is READY after avoiding the Hobby-plan serverless-function count limit by keeping the engine in a shared library rather than a new API function.

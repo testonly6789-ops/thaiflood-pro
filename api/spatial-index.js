@@ -1,4 +1,5 @@
 import { provinces as provinceMeta } from './provinces.js';
+import { buildHistoricalProvince } from '../lib/historical-14y-engine.js';
 
 // National same-district recurrence snapshot, verified against DDPM district-detail data.
 // Definition: same district reported in at least 2 comparable years.
@@ -49,7 +50,24 @@ const totalRecurringDistricts = provinces.reduce((sum,x) => sum + x.recurringDis
 const maxYears = Math.max(...provinces.map(x => x.maxYears));
 const topProvince = ranked[0];
 
-export default function handler(req, res) {
+export const config = { maxDuration: 60 };
+
+export default async function handler(req, res) {
+  const historical14y = String(req.query?.historical14y || '') === '1';
+  if (historical14y) {
+    const province = String(req.query?.province || '').trim();
+    if (!province) return res.status(400).json({ok:false,error:'กรุณาระบุจังหวัด'});
+    try {
+      const payload = await buildHistoricalProvince(province);
+      res.setHeader('Cache-Control','public, max-age=300');
+      res.setHeader('CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
+      res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
+      return res.status(200).json(payload);
+    } catch (error) {
+      return res.status(500).json({ok:false,province,error:error?.message || String(error)});
+    }
+  }
+
   res.setHeader('Cache-Control','public, max-age=3600');
   res.setHeader('CDN-Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
   res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
