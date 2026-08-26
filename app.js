@@ -1,1 +1,1 @@
-await import('/app-entry-v5.js?v=20260826-semanticfix1');
+await import('/app-entry-v6.js?v=20260826-spatial1');
