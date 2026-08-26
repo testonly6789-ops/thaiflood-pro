@@ -17,7 +17,7 @@ const state = {
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const fmt = (n, d = 0) => n == null ? '—' : Number(n).toLocaleString('th-TH', { maximumFractionDigits: d, minimumFractionDigits: d > 0 ? d : 0 });
-const fmtLoose = (n, d = 0) => n == null ? 'ไม่มีข้อมูลยืนยัน' : Number(n).toLocaleString('th-TH', { maximumFractionDigits: d, minimumFractionDigits: d > 0 ? d : 0 });
+const fmtLoose = (n, d = 0) => n == null ? 'ไม่มีข้อมูล' : Number(n).toLocaleString('th-TH', { maximumFractionDigits: d, minimumFractionDigits: d > 0 ? d : 0 });
 const normalize = (s) => (s || '').toString().toLowerCase().trim();
 const recurrenceColor = (n) => n >= 7 ? '#c93648' : n >= 5 ? '#e96c35' : n >= 4 ? '#e5a721' : '#7f8d9a';
 const recurrenceRadius = (n) => n == null ? 6 : Math.max(7, 7 + ((n - 3) * 2.5));
@@ -228,26 +228,17 @@ function renderMap() {
 function renderProvince() {
   const p = state.selected;
   if (!p) return;
-  const summary = derivedSummary(p);
   const w = getWeather(p.name);
 
   $('#selectedName').textContent = p.name;
   $('#selectedRegion').textContent = `ภาค${p.region}`;
-  $('#recurrenceBadge').innerHTML = `<small>ท่วมซ้ำ</small><strong>${p.recurrence == null ? '—' : p.recurrence}</strong><span>${p.recurrence == null ? 'ไม่มีข้อมูลยืนยัน' : `ครั้ง / ${state.window.years} ปี`}</span>`;
-
-  $('#metricRecurrence').textContent = p.recurrence == null ? '—' : p.recurrence;
-  $('#metricWater').textContent = fmt(summary.maxWaterM, 1);
-  $('#metricDamage').textContent = fmt(summary.damageM);
-  $('#metricAid').textContent = fmt(summary.aidM);
-  $('#metricAgri').textContent = fmt(summary.agriRai);
-  $('#metricHouseholds').textContent = fmt(summary.households);
-  $('#metricCropAid').textContent = fmt(summary.cropAidM);
-  $('#metricEventCount').textContent = fmt(summary.eventCount);
-
-  renderTags($('#hotspotTags'), p.hotspots, true);
-  renderTags($('#mechanismTags'), p.mechanisms, false);
-  $('#patternInsight').textContent = patternInsight(p, w);
-  renderYears(p);
+  $('#recurrenceBadge').innerHTML = '<small>ข้อมูล ปภ.</small><strong>…</strong><span>กำลังโหลด</span>';
+  ['metricRecurrence','metricWater','metricDamage','metricAid','metricAgri','metricHouseholds','metricCropAid','metricEventCount']
+    .forEach(id => $('#' + id).textContent = 'ไม่มีข้อมูล');
+  renderTags($('#hotspotTags'), [], true);
+  renderTags($('#mechanismTags'), [], false);
+  $('#patternInsight').textContent = 'กำลังโหลดข้อมูลอุทกภัยทางการจาก ปภ.';
+  renderYears({ events: [] });
   renderSignals(w);
   renderConfidence(p);
   renderOfficialData(p);
@@ -258,7 +249,7 @@ function renderProvince() {
 function renderTags(el, arr, emphasis = false) {
   el.innerHTML = '';
   if (!arr?.length) {
-    el.innerHTML = '<span class="empty-text">ยังไม่มีข้อมูลยืนยันในชุดอ้างอิง</span>';
+    el.innerHTML = '<span class="empty-text">ไม่มีข้อมูล</span>';
     return;
   }
   arr.forEach(x => {
@@ -304,7 +295,7 @@ function renderYears(p) {
   const details = $('#eventDetails');
   details.innerHTML = '';
   if (!events.length) {
-    details.innerHTML = '<div class="empty-text">ชุดต้นแบบระบุจำนวนครั้ง แต่ยังไม่ได้เปิดเผยรายละเอียดเหตุการณ์รายปีของจังหวัดนี้ครบทุกเหตุการณ์ — ระบบจึงไม่สร้างปีหรือความเสียหายขึ้นเอง</div>';
+    details.innerHTML = '<div class="empty-text">ไม่มีข้อมูลเหตุการณ์รายปีที่ยืนยันจาก ปภ. ระบบจะไม่สร้างปีหรือค่าความเสียหายขึ้นเอง</div>';
     return;
   }
 
@@ -319,35 +310,35 @@ function renderYears(p) {
         <div class="event-year">พ.ศ. ${e.year}</div>
         <div class="event-title">
           <b>${e.areas || 'พื้นที่ที่บันทึก'}</b>
-          <small>${e.severityLabel || (e.severity === 'critical' ? 'วิกฤต' : 'เหตุการณ์ที่บันทึก')}</small>
+          <small>${e.severityLabel || (e.severity === 'critical' ? 'วิกฤต' : 'ข้อมูล ปภ. ที่บันทึกในปีนี้')}</small>
         </div>
       </div>
       <div class="event-kpis">
         <article>
           <span>ความเสียหายรวม</span>
           <strong>${fmtLoose(e.damageM)} ล้านบาท</strong>
-          <p>${e.households != null ? `ครัวเรือนที่ได้รับผลกระทบ ${fmt(e.households)} ครัวเรือน` : 'หากไม่มีฟิลด์บางตัว ระบบจะไม่เติมเลขแทนเอง'}</p>
+          <p>${e.households != null ? `ผลรวมครัวเรือนตามระเบียน ปภ. ${fmt(e.households)} ครัวเรือน` : 'หากไม่มีฟิลด์บางตัว ระบบจะไม่เติมเลขแทนเอง'}</p>
         </article>
         <article>
           <span>เกษตรที่ได้รับผลกระทบ</span>
           <strong>${fmtLoose(e.agriRai)} ไร่</strong>
-          <p>${e.cropAidM != null ? `งบชดเชยพืช ${fmt(e.cropAidM)} ล้านบาท` : 'ยังไม่มีข้อมูลยืนยันเรื่องงบชดเชยพืช'}</p>
+          <p>${e.aidM != null ? `งบช่วยเหลือ/ชดเชย ${fmt(e.aidM)} ล้านบาท` : 'งบช่วยเหลือ/ชดเชย: ไม่มีข้อมูล'}</p>
         </article>
       </div>
       <div class="event-note-grid">
         <div class="event-note">
           <h5>พืช/กิจกรรมที่ได้รับผลกระทบหลัก</h5>
-          <p>${e.crops || 'ยังไม่มีรายละเอียดพืชหรือกิจกรรมเด่นที่ยืนยันในชุดอ้างอิง'}</p>
+          <p>${e.crops || 'ไม่มีข้อมูล'}</p>
         </div>
         <div class="event-note">
           <h5>สาเหตุและลำดับเหตุการณ์</h5>
-          <p>${e.cause || 'ยังไม่มีคำอธิบายสาเหตุที่ยืนยันในชุดอ้างอิง'}</p>
+          <p>${e.cause || 'ไม่มีข้อมูล'}</p>
         </div>
       </div>
       <div class="event-note-grid">
         <div class="event-note">
           <h5>ผลกระทบเชิงพื้นที่</h5>
-          <p>${e.impact || 'ยังไม่มีรายละเอียดผลกระทบเชิงพื้นที่ที่ยืนยันในชุดอ้างอิง'}</p>
+          <p>${e.impact || 'ไม่มีข้อมูล'}</p>
         </div>
         <div class="event-note">
           <h5>หมายเหตุ</h5>
@@ -416,20 +407,60 @@ async function renderOfficialData(p) {
     loading.hidden = true;
     content.hidden = false;
     const sm = data.summary || {};
-    $('#officialYears').textContent = fmt(sm.officialYearsWithRecords);
-    $('#officialHouseholds').textContent = fmt(sm.households);
-    $('#officialAgri').textContent = fmt(sm.agriRai);
-    $('#officialDamage').textContent = fmt(sm.totalDamageM, 1);
+    $('#officialYears').textContent = fmtLoose(sm.officialYearsWithRecords);
+    $('#officialHouseholds').textContent = fmtLoose(sm.households);
+    $('#officialAgri').textContent = fmtLoose(sm.agriRai);
+    $('#officialDamage').textContent = fmtLoose(sm.totalDamageM, 1);
 
     renderTags($('#officialDistrictTags'), sm.districts || [], true);
     renderOfficialYears(data.years || []);
     renderOfficialChart(data.years || []);
+    // Province Deep Dive and the official-data tab now share one source of truth.
+    if (state.selected?.name === p.name) applyOfficialDeepDive(p, data);
   } catch (e) {
     loading.hidden = true;
     content.hidden = true;
     error.hidden = false;
     error.textContent = `โหลดข้อมูลทางการไม่สำเร็จในรอบนี้: ${e.message || e}`;
   }
+}
+
+function applyOfficialDeepDive(p, data) {
+  const years = data.years || [];
+  const sm = data.summary || {};
+  const show = (value, digits = 0) => value == null ? 'ไม่มีข้อมูล' : fmt(value, digits);
+  $('#recurrenceBadge').innerHTML = `<small>ปีที่พบระเบียน ปภ.</small><strong>${show(sm.officialYearsWithRecords)}</strong><span>ปี / ${data.coverage?.start || 2562}–${data.coverage?.end || 2568}</span>`;
+  $('#metricRecurrence').textContent = show(sm.officialYearsWithRecords);
+  $('#metricWater').textContent = 'ไม่มีข้อมูล';
+  $('#metricDamage').textContent = show(sm.totalDamageM, 1);
+  $('#metricAid').textContent = show(sm.reliefBudgetM, 1);
+  $('#metricAgri').textContent = show(sm.agriRai);
+  $('#metricHouseholds').textContent = show(sm.households);
+  $('#metricCropAid').textContent = show(sm.cropCompensationM, 1);
+  $('#metricEventCount').textContent = show(years.reduce((total, y) => total + Number(y.recordCount || 0), 0));
+
+  renderTags($('#hotspotTags'), sm.districts || [], true);
+  const causes = [...new Set(years.flatMap(y => y.causes || []))];
+  renderTags($('#mechanismTags'), causes, false);
+  $('#patternInsight').textContent = years.length
+    ? `พบข้อมูลอุทกภัยทางการ ${years.length} ปี ครอบคลุม ${(sm.districts || []).length} อำเภอ ตัวเลขที่ไม่ปรากฏในแหล่งข้อมูลจะแสดงเป็น “ไม่มีข้อมูล”`
+    : 'ไม่พบระเบียนอุทกภัยของจังหวัดนี้ในชุดข้อมูล ปภ. ที่เชื่อมต่อ และจะไม่ตีความว่าไม่เคยเกิดอุทกภัย';
+
+  const events = years.map(y => ({
+    year: y.year,
+    areas: [...(y.districts || []), ...(y.subdistricts || []), ...(y.affectedAreas || [])].join(' / ') || null,
+    households: y.households,
+    agriRai: y.agriRai,
+    damageM: y.totalDamageM,
+    aidM: y.reliefBudgetM,
+    cropAidM: y.cropCompensationM,
+    cause: (y.causes || []).join(' • ') || null,
+    impact: (y.descriptions || []).join(' • ') || null,
+    note: `${y.recordCount || 0} ระเบียนจาก DDPM Open Data`,
+  }));
+  state.selectedYear = events[0]?.year || null;
+  renderYears({ ...p, events });
+  renderConfidence({ ...p, recurrence: years.length || null, events });
 }
 
 function renderOfficialYears(years) {
@@ -445,9 +476,9 @@ function renderOfficialYears(years) {
     c.innerHTML = `
       <div><b>พ.ศ. ${y.year}</b><span>${y.recordCount || 0} ระเบียน</span></div>
       <div class="official-year-kpis">
-        <span>ครัวเรือน <strong>${fmt(y.households)}</strong></span>
-        <span>เกษตร <strong>${fmt(y.agriRai)} ไร่</strong></span>
-        <span>เสียหาย <strong>${fmt(y.totalDamageM,1)} ลบ.</strong></span>
+        <span>ครัวเรือน <strong>${fmtLoose(y.households)}</strong></span>
+        <span>เกษตร <strong>${fmtLoose(y.agriRai)} ไร่</strong></span>
+        <span>เสียหาย <strong>${fmtLoose(y.totalDamageM,1)} ลบ.</strong></span>
       </div>
       <p>${(y.districts || []).length ? `อำเภอ: ${y.districts.slice(0,8).join(', ')}${y.districts.length>8?'…':''}` : 'ยังไม่พบชื่ออำเภอในระเบียนที่ดึงได้'}</p>`;
     box.appendChild(c);
@@ -462,8 +493,8 @@ function renderOfficialChart(years) {
   state.charts.official = new Chart(canvas, {
     type:'bar',
     data:{ labels: rows.map(r=>r.year), datasets:[
-      { label:'ความเสียหายรวม (ล้านบาท)', data:rows.map(r=>r.totalDamageM || 0), yAxisID:'y' },
-      { label:'พื้นที่เกษตร (ไร่)', data:rows.map(r=>r.agriRai || 0), yAxisID:'y1', type:'line', tension:.25 }
+      { label:'ความเสียหายรวม (ล้านบาท)', data:rows.map(r=>r.totalDamageM ?? null), yAxisID:'y' },
+      { label:'พื้นที่เกษตร (ไร่)', data:rows.map(r=>r.agriRai ?? null), yAxisID:'y1', type:'line', tension:.25 }
     ]},
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{position:'bottom'}}, scales:{ y:{beginAtZero:true,position:'left'}, y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false}} } }
   });
