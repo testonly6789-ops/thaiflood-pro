@@ -30,11 +30,11 @@ async function runPool(items, limit, worker) {
 
 export default async function handler(req, res) {
   const offset = Math.max(0, Number(req.query?.offset || 0));
-  const limit = Math.max(1, Math.min(12, Number(req.query?.limit || 10)));
+  const limit = Math.max(1, Math.min(77, Number(req.query?.limit || 77)));
   const slice = provinces.slice(offset, offset + limit).map(p => p.name);
   const started = Date.now();
 
-  const results = await runPool(slice, 3, async province => {
+  const results = await runPool(slice, 8, async province => {
     try {
       const { statusCode, payload } = await runProvince(province);
       const spatial = payload?.spatialRecurrence;
