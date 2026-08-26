@@ -55,23 +55,6 @@ function installLegacySelectorSinks() {
 }
 installLegacySelectorSinks();
 
-const spatialMatrixElement = document.querySelector('#spatialYearMatrix');
-if (spatialMatrixElement) {
-  // Remove closures left by the legacy matrix; those closures point at the
-  // province that was selected before the spatial takeover.
-  spatialMatrixElement.querySelectorAll('.year-cell').forEach(cell => { cell.onclick = null; });
-  spatialMatrixElement.addEventListener('click', (event) => {
-    const cell = event.target.closest('.year-cell');
-    if (!cell || !spatialMatrixElement.contains(cell)) return;
-    spatialMatrixElement.querySelectorAll('.year-cell').forEach(item => {
-      item.classList.toggle('active', item === cell);
-    });
-    const suffix = Number(cell.querySelector('b')?.textContent);
-    const year = Number.isFinite(suffix) ? 2500 + suffix : null;
-    if (year != null) document.getElementById(`event-${year}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  });
-}
-
 function selectedName() {
   const name = document.querySelector('#selectedName')?.textContent?.trim();
   return name && name !== '—' ? name : null;
@@ -89,18 +72,31 @@ function fmtYears(years) {
 function renderSpatialMatrix(data) {
   const box = document.querySelector('#spatialYearMatrix');
   if (!box || !data) return;
+  const start = Number(data.coverage?.start || 2562);
+  const end = Number(data.coverage?.end || 2568);
   const provinceYears = new Set((data.summary?.floodYearList || []).map(Number));
-  [...box.querySelectorAll('.year-cell')].forEach((cell, i) => {
-    const suffix = Number(cell.querySelector('b')?.textContent);
-    const year = Number.isFinite(suffix) ? 2500 + suffix : 2562 + i;
-    const span = cell.querySelector('span');
+  const yearWindowText = document.querySelector('#yearWindowText');
+  if (yearWindowText) yearWindowText.textContent = `${start} → ${end}`;
+
+  // Rebuild the visible matrix every time. The legacy matrix is now hidden, so
+  // reusing its old button closures would leave stale province/year state after
+  // a province switch or a slow initial recurrence-index load.
+  box.innerHTML = '';
+  for (let year = start; year <= end; year += 1) {
     const found = provinceYears.has(year);
-    cell.classList.toggle('has-event', found);
-    if (span) span.textContent = found ? 'มีรายงาน' : 'ไม่พบ';
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = `year-cell ${found ? 'has-event' : ''}`;
+    cell.innerHTML = `<b>${String(year).slice(-2)}</b><span>${found ? 'มีรายงาน' : 'ไม่พบ'}</span>`;
     cell.title = found
       ? `พ.ศ. ${year} มีรายงานอุทกภัยระดับจังหวัดในชุดข้อมูล ปภ.`
       : `พ.ศ. ${year} ไม่พบรายงานอุทกภัยของจังหวัดในชุดข้อมูลที่เชื่อมต่อ`;
-  });
+    cell.addEventListener('click', () => {
+      box.querySelectorAll('.year-cell').forEach(item => item.classList.toggle('active', item === cell));
+      document.getElementById(`event-${year}`)?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+    box.appendChild(cell);
+  }
 }
 
 function renderRecurringHotspots(data) {
