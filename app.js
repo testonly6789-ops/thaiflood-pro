@@ -1,1 +1,1 @@
-await import('/app-entry-v6.js?v=20260826-spatial2');
+await import('/app-entry-v7.js?v=20260826-dashboard-spatial1');
