@@ -28,7 +28,8 @@ function clarifyOfficialYearMeaning() {
   const end = data.coverage?.end || 2567;
 
   const badge = document.querySelector('#recurrenceBadge');
-  if (badge) badge.innerHTML = `<small>ปีที่มีข้อมูลระดับอำเภอ ปภ.</small><strong>${confirmed ?? '—'}</strong><span>ปี / ${start}–${end}</span>`;
+  const desiredBadge = `<small>ปีที่มีข้อมูลระดับอำเภอ ปภ.</small><strong>${confirmed ?? '—'}</strong><span>ปี / ${start}–${end}</span>`;
+  if (badge && badge.innerHTML !== desiredBadge) badge.innerHTML = desiredBadge;
 
   const recurrence = document.querySelector('#metricRecurrence');
   if (recurrence) {
@@ -36,38 +37,42 @@ function clarifyOfficialYearMeaning() {
     const card = recurrence.parentElement;
     const label = card?.querySelector('span');
     const note = card?.querySelector('small');
-    if (label) label.textContent = 'ปีที่มีข้อมูลระดับอำเภอ';
-    if (note) note.textContent = `รายละเอียดพื้นที่ ปภ. ${start}–${end}`;
+    if (label && label.textContent !== 'ปีที่มีข้อมูลระดับอำเภอ') label.textContent = 'ปีที่มีข้อมูลระดับอำเภอ';
+    const desiredNote = `รายละเอียดพื้นที่ ปภ. ${start}–${end}`;
+    if (note && note.textContent !== desiredNote) note.textContent = desiredNote;
   }
 
   const officialYears = document.querySelector('#officialYears');
   if (officialYears) {
     officialYears.textContent = confirmed ?? 'ไม่มีข้อมูล';
     const label = officialYears.parentElement?.querySelector('span');
-    if (label) label.textContent = 'ปีที่มีข้อมูลระดับอำเภอ';
-  }
-
-  const insight = document.querySelector('#patternInsight');
-  if (insight) {
-    const districtCount = Number(sm.districtCount || 0);
-    const summaryYears = Array.isArray(sm.provinceSummaryYears) ? sm.provinceSummaryYears : [];
-    const separated = summaryYears.length ? ` ข้อมูลปี ${summaryYears.slice().sort().join(' และ ')} เป็นข้อมูลสรุประดับจังหวัด จึงแยกออกจากจำนวนปีด้านบน` : '';
-    insight.textContent = confirmed
-      ? `พบข้อมูลอุทกภัยที่ระบุพื้นที่ระดับอำเภอ ${confirmed} ปี${districtCount ? ` ครอบคลุมสูงสุด ${districtCount.toLocaleString('th-TH')} อำเภอ` : ''}.${separated}`
-      : `ไม่พบข้อมูลอุทกภัยที่ยืนยันพื้นที่ระดับอำเภอในช่วง ${start}–${end}.${separated}`;
+    if (label && label.textContent !== 'ปีที่มีข้อมูลระดับอำเภอ') label.textContent = 'ปีที่มีข้อมูลระดับอำเภอ';
   }
 }
 
+const badge = document.querySelector('#recurrenceBadge');
+const selectedName = document.querySelector('#selectedName');
+const observeOptions = { subtree:true, childList:true, characterData:true };
 let queued = false;
+let clarifyObserver = null;
+
+function reconnectObserver() {
+  if (!clarifyObserver) return;
+  if (badge) clarifyObserver.observe(badge, observeOptions);
+  if (selectedName) clarifyObserver.observe(selectedName, observeOptions);
+}
+
 function queueClarify() {
   if (queued) return;
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
-    clarifyOfficialYearMeaning();
+    clarifyObserver?.disconnect();
+    try { clarifyOfficialYearMeaning(); }
+    finally { reconnectObserver(); }
   });
 }
 
-const provinceModal = document.querySelector('#provinceModal');
-if (provinceModal) new MutationObserver(queueClarify).observe(provinceModal, { subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['hidden'] });
+clarifyObserver = new MutationObserver(queueClarify);
+reconnectObserver();
 setTimeout(queueClarify, 300);
