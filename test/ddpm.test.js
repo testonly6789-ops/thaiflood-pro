@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler, { aggregateYear, normalizeDistrictName, parseRecord } from '../api/ddpm.js';
+import handler, { aggregateYear, normalizeDistrictName, normalizeSubdistrictName, parseRecord } from '../api/ddpm.js';
 import { provinces } from '../api/provinces.js';
 
 test('uses readable administrative names and rejects numeric district codes', () => {
@@ -25,6 +25,26 @@ test('uses readable administrative names and rejects numeric district codes', ()
   assert.equal(normalizeDistrictName('23'), '');
 });
 
+test('supports the plain administrative field names used by existing DDPM resources', () => {
+  const record = parseRecord({
+    province: 'เชียงใหม่',
+    district: 'เมืองเชียงใหม่',
+    subdistrict: 'ช้างคลาน',
+    households: '42',
+  }, 2568);
+
+  assert.equal(record.province, 'เชียงใหม่');
+  assert.equal(record.district, 'เมืองเชียงใหม่');
+  assert.equal(record.subdistrict, 'ช้างคลาน');
+  assert.equal(record.households, 42);
+
+  const coded = parseRecord({ province: '50', district: '25', subdistrict: '23' }, 2568);
+  assert.equal(coded.province, '');
+  assert.equal(coded.district, '');
+  assert.equal(coded.subdistrict, '');
+  assert.equal(normalizeSubdistrictName('๒๓'), '');
+});
+
 test('aggregates only confirmed official values and preserves descriptions', () => {
   const result = aggregateYear([
     { province_name: 'เชียงใหม่', district_name: 'เมืองเชียงใหม่', households: 10, cause: 'น้ำล้นตลิ่ง' },
@@ -45,7 +65,7 @@ test('DDPM endpoint returns a usable deep-dive response for all 77 provinces', a
     const province = new URL(url).searchParams.get('q');
     return new Response(JSON.stringify({
       success: true,
-      result: { total: 1, records: [{ province_name: province, district_code: 25, district_name: 'เมือง', households: 1 }] },
+      result: { total: 1, records: [{ province, district_code: 25, district: 'เมือง', subdistrict: 'ในเมือง', households: 1 }] },
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   t.after(() => { globalThis.fetch = originalFetch; });

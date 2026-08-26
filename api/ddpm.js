@@ -66,7 +66,8 @@ function sumFields(record, patternGroups) {
 }
 
 function normalizeProvinceName(v='') {
-  return String(v).trim().replace(/^จังหวัด\s*/,'').replace(/^จ\.\s*/,'');
+  const value = String(v).trim().replace(/^จังหวัด\s*/,'').replace(/^จ\.\s*/,'');
+  return /^\d+$/.test(latinizeDigits(value)) ? '' : value;
 }
 
 function normalizeDistrictName(v='') {
@@ -75,13 +76,20 @@ function normalizeDistrictName(v='') {
   return /^\d+$/.test(latinizeDigits(value)) ? '' : value;
 }
 
+function normalizeSubdistrictName(v='') {
+  const value = String(v).trim().replace(/^ตำบล\s*/,'').replace(/^ต\.\s*/,'');
+  return /^\d+$/.test(latinizeDigits(value)) ? '' : value;
+}
+
 function parseRecord(record, year) {
-  const provinceRaw = textValue(record, ['province_name','prov_name','changwat_name','จังหวัด'], [/province.*name/i,/provname/i,/ชื่อจังหวัด/i,/จังหวัด/i]);
-  const districtRaw = textValue(record, ['district_name','amphoe_name','amp_name','อำเภอ','ชื่ออำเภอ'], [/district.*name/i,/amphoe.*name/i,/ampname/i,/ชื่ออำเภอ/i,/อำเภอ/i]);
-  const subdistrictRaw = textValue(record, ['subdistrict_name','tambon_name','tam_name','ตำบล','ชื่อตำบล'], [/subdistrict.*name/i,/tambon.*name/i,/tamname/i,/ชื่อตำบล/i,/ตำบล/i]);
+  // Older DDPM resources use the plain province/district/subdistrict keys,
+  // while newer exports may use explicit *_name variants.
+  const provinceRaw = textValue(record, ['province_name','prov_name','changwat_name','province','จังหวัด'], [/province.*name/i,/provname/i,/ชื่อจังหวัด/i,/จังหวัด/i]);
+  const districtRaw = textValue(record, ['district_name','amphoe_name','amp_name','district','อำเภอ','ชื่ออำเภอ'], [/district.*name/i,/amphoe.*name/i,/ampname/i,/ชื่ออำเภอ/i,/อำเภอ/i]);
+  const subdistrictRaw = textValue(record, ['subdistrict_name','tambon_name','tam_name','subdistrict','ตำบล','ชื่อตำบล'], [/subdistrict.*name/i,/tambon.*name/i,/tamname/i,/ชื่อตำบล/i,/ตำบล/i]);
   const province = normalizeProvinceName(provinceRaw || '');
   const district = normalizeDistrictName(districtRaw || '');
-  const subdistrict = String(subdistrictRaw || '').trim();
+  const subdistrict = normalizeSubdistrictName(subdistrictRaw || '');
 
   const households = num(valueOf(record, [/households/i,/ครัวเรือน/ ]));
   const population = num(valueOf(record, [/population/i,/ประชากร/ ]));
@@ -255,4 +263,4 @@ export default async function handler(req, res) {
   });
 }
 
-export { parseRecord, aggregateYear, normalizeDistrictName };
+export { parseRecord, aggregateYear, normalizeDistrictName, normalizeSubdistrictName };
