@@ -1,1 +1,1 @@
-export { default } from './ddpm-fast-v3.js';
+export { default } from './ddpm-fast-v4.js';
