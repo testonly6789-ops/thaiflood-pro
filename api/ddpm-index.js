@@ -1,107 +1,108 @@
-import { provinces } from './provinces.js';
-
-const API = 'https://catalog.disaster.go.th/api/3/action/datastore_search';
-const YEARS = [
-  { year:2562, id:'8c477d58-3ae9-436f-9e3d-f7d302fe8197', mode:'summary', province:'Province', fields:['Province','District','households','Population','Deaths','Missing','Injured','Rice Fields','Garden Crops','Field Crops','Total Damage (THB)','Agri. Damage (THB)'] },
-  { year:2563, id:'27e81e82-7cdc-4fe9-94b9-f3ca193c2328', mode:'district', province:'province', fields:['province','district'] },
-  { year:2564, id:'beb61961-ded4-447d-a348-8a39623e95d4', mode:'district', province:'province', fields:['province','district'] },
-  { year:2565, id:'bc36c686-79f3-4574-a654-54cf0ef00d82', mode:'district', province:'province', fields:['province','district'] },
-  { year:2566, id:'af2370d1-d2d0-4844-a16d-e6af34926e71', mode:'district', province:'Province', fields:['Province','District'] },
-  { year:2567, id:'dde2eddc-28f5-40bf-8a62-28bc68f02af8', mode:'district', province:'Province', fields:['Province','District'] },
-  { year:2568, id:'9eae087c-8931-4a74-9968-200cdb3d2fb3', mode:'summary', province:'Province', fields:['Province','Time','District','Affected Households','Affected People','fatalities_count','Missing Persons','injuries_count','Agriculture (Acres)'] },
-];
-
-const THAI_DIGITS = { '๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9' };
-const latinize = (s='') => String(s ?? '').replace(/[๐-๙]/g, d => THAI_DIGITS[d] || d);
-const num = (v) => {
-  if (v == null || v === '' || v === '-' || v === '—') return null;
-  const cleaned = latinize(v).replace(/,/g,'').replace(/[^0-9.+-]/g,'');
-  if (!cleaned) return null;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : null;
+// Verified against the official DDPM CKAN datasets for B.E. 2562–2568 on 2026-08-26.
+// This historical coverage is intentionally snapshotted so Province Deep Dive does not
+// make 539 upstream requests every time a user opens the app.
+const FLOOD_YEARS = {
+  'กรุงเทพมหานคร':[2563,2564,2565,2567],
+  'กระบี่':[2562,2563,2564,2565,2566,2567,2568],
+  'กาญจนบุรี':[2562,2563,2564,2565,2566,2567,2568],
+  'กาฬสินธุ์':[2562,2563,2564,2565,2566,2567,2568],
+  'กำแพงเพชร':[2562,2563,2564,2565,2566,2567,2568],
+  'ขอนแก่น':[2562,2563,2564,2565,2566,2567,2568],
+  'จันทบุรี':[2562,2563,2564,2565,2566,2567,2568],
+  'ฉะเชิงเทรา':[2563,2564,2565,2566,2567,2568],
+  'ชลบุรี':[2562,2563,2564,2565,2566,2567,2568],
+  'ชัยนาท':[2563,2564,2565,2567,2568],
+  'ชัยภูมิ':[2562,2563,2564,2565,2566,2567,2568],
+  'ชุมพร':[2562,2563,2564,2565,2566,2567,2568],
+  'เชียงราย':[2562,2563,2564,2565,2566,2567,2568],
+  'เชียงใหม่':[2562,2563,2564,2565,2566,2567,2568],
+  'ตรัง':[2562,2563,2564,2565,2566,2567,2568],
+  'ตราด':[2562,2563,2564,2565,2566,2567,2568],
+  'ตาก':[2562,2563,2564,2565,2566,2567,2568],
+  'นครนายก':[2564,2565,2566,2567,2568],
+  'นครปฐม':[2563,2564,2565,2566,2567,2568],
+  'นครพนม':[2562,2563,2564,2565,2566,2567,2568],
+  'นครราชสีมา':[2562,2563,2564,2565,2566,2567,2568],
+  'นครศรีธรรมราช':[2562,2563,2564,2565,2566,2567,2568],
+  'นครสวรรค์':[2563,2564,2565,2566,2567,2568],
+  'นนทบุรี':[2564,2565,2567,2568],
+  'นราธิวาส':[2562,2563,2564,2565,2566,2567,2568],
+  'น่าน':[2562,2563,2564,2565,2566,2567,2568],
+  'บึงกาฬ':[2564,2567,2568],
+  'บุรีรัมย์':[2562,2563,2564,2565,2566,2567,2568],
+  'ปทุมธานี':[2563,2564,2565,2566,2567,2568],
+  'ประจวบคีรีขันธ์':[2562,2563,2564,2565,2566,2568],
+  'ปราจีนบุรี':[2562,2563,2564,2565,2566,2567,2568],
+  'ปัตตานี':[2562,2563,2564,2565,2566,2567,2568],
+  'พระนครศรีอยุธยา':[2564,2565,2566,2567,2568],
+  'พะเยา':[2562,2563,2564,2565,2566,2567,2568],
+  'พังงา':[2562,2563,2564,2565,2566,2567,2568],
+  'พัทลุง':[2562,2563,2564,2565,2566,2567,2568],
+  'พิจิตร':[2562,2563,2564,2565,2566,2567,2568],
+  'พิษณุโลก':[2562,2563,2564,2565,2566,2567,2568],
+  'เพชรบุรี':[2562,2563,2564,2565,2566],
+  'เพชรบูรณ์':[2562,2563,2564,2565,2566,2567,2568],
+  'แพร่':[2562,2563,2564,2565,2566,2567,2568],
+  'ภูเก็ต':[2563,2564,2565,2567,2568],
+  'มหาสารคาม':[2562,2564,2565,2566,2567,2568],
+  'มุกดาหาร':[2562,2563,2564,2565,2566,2567,2568],
+  'แม่ฮ่องสอน':[2562,2563,2564,2565,2566,2567,2568],
+  'ยโสธร':[2562,2564,2565,2566,2567,2568],
+  'ยะลา':[2562,2563,2564,2565,2566,2567,2568],
+  'ร้อยเอ็ด':[2562,2564,2565,2566,2567,2568],
+  'ระนอง':[2562,2563,2564,2565,2566,2567,2568],
+  'ระยอง':[2562,2563,2564,2565,2566,2567,2568],
+  'ราชบุรี':[2562,2563,2564,2565,2567,2568],
+  'ลพบุรี':[2563,2564,2565,2566,2568],
+  'ลำปาง':[2562,2563,2564,2565,2566,2567,2568],
+  'ลำพูน':[2562,2563,2564,2565,2566,2567,2568],
+  'เลย':[2562,2563,2564,2565,2566,2567,2568],
+  'ศรีสะเกษ':[2562,2563,2564,2565,2566,2567,2568],
+  'สกลนคร':[2562,2565,2566,2567,2568],
+  'สงขลา':[2563,2564,2565,2566,2567,2568],
+  'สตูล':[2562,2563,2564,2565,2566,2567,2568],
+  'สมุทรปราการ':[2564,2565,2566,2567,2568],
+  'สมุทรสงคราม':[2563,2565],
+  'สมุทรสาคร':[2562,2563,2564,2565,2566,2567,2568],
+  'สระแก้ว':[2562,2563,2564,2565,2566,2567,2568],
+  'สระบุรี':[2562,2563,2564,2565,2566,2567,2568],
+  'สิงห์บุรี':[2563,2564,2565,2567,2568],
+  'สุโขทัย':[2562,2563,2564,2565,2566,2567,2568],
+  'สุพรรณบุรี':[2562,2563,2564,2565,2566,2567,2568],
+  'สุราษฎร์ธานี':[2562,2563,2564,2565,2566,2567,2568],
+  'สุรินทร์':[2562,2563,2564,2565,2566,2567,2568],
+  'หนองคาย':[2562,2564,2565,2566,2567,2568],
+  'หนองบัวลำภู':[2562,2563,2564,2565,2566,2567,2568],
+  'อ่างทอง':[2564,2565,2566,2567,2568],
+  'อำนาจเจริญ':[2562,2564,2565,2566,2568],
+  'อุดรธานี':[2562,2563,2565,2566,2567,2568],
+  'อุตรดิตถ์':[2562,2563,2564,2565,2566,2567,2568],
+  'อุทัยธานี':[2562,2563,2564,2565,2566,2567,2568],
+  'อุบลราชธานี':[2562,2563,2564,2565,2566,2567,2568],
 };
-const positive = (v) => { const n = num(v); return n != null && n > 0; };
 
-async function query(resource, province) {
-  const u = new URL(API);
-  u.searchParams.set('resource_id', resource.id);
-  u.searchParams.set('limit', '1');
-  u.searchParams.set('fields', resource.fields.join(','));
-  u.searchParams.set('filters', JSON.stringify({ [resource.province]: province }));
-  const r = await fetch(u, { headers:{ 'User-Agent':'ThaiFlood-Intelligence/8.0' } });
-  if (!r.ok) throw new Error(`${resource.year}/${province}: HTTP ${r.status}`);
-  const data = await r.json();
-  if (!data?.success) throw new Error(`${resource.year}/${province}: CKAN success=false`);
-  return data.result || {};
-}
+const VERIFIED_AT = '2026-08-26T10:50:24Z';
+const list = Object.entries(FLOOD_YEARS).map(([province, floodYearList]) => ({
+  province,
+  floodYears:floodYearList.length,
+  floodYearList,
+  checkedYears:7,
+  ratePct:Math.round((floodYearList.length / 7) * 1000) / 10,
+}));
 
-function summaryHasFlood(year, rows) {
-  if (year === 2568) {
-    return rows.some(row => ['Time','District','Affected Households','Affected People','fatalities_count','Missing Persons','injuries_count','Agriculture (Acres)'].some(k => positive(row[k])));
-  }
-  return rows.some(row => ['District','households','Population','Deaths','Missing','Injured','Rice Fields','Garden Crops','Field Crops','Total Damage (THB)','Agri. Damage (THB)'].some(k => positive(row[k])));
-}
-
-async function runPool(tasks, limit = 18) {
-  const out = new Array(tasks.length);
-  let next = 0;
-  async function worker() {
-    while (true) {
-      const i = next++;
-      if (i >= tasks.length) return;
-      out[i] = await tasks[i]();
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
-  return out;
-}
-
-export default async function handler(req, res) {
-  try {
-    const started = Date.now();
-    const tasks = [];
-    const meta = [];
-    for (const resource of YEARS) {
-      for (const p of provinces) {
-        meta.push([resource, p.name]);
-        tasks.push(() => query(resource, p.name));
-      }
-    }
-
-    const results = await runPool(tasks, 18);
-    const index = Object.fromEntries(provinces.map(p => [p.name, { province:p.name, floodYearList:[] }]));
-
-    for (let i = 0; i < results.length; i += 1) {
-      const [resource, province] = meta[i];
-      const result = results[i];
-      const rows = result.records || [];
-      const flooded = resource.mode === 'district'
-        ? Number(result.total || 0) > 0
-        : summaryHasFlood(resource.year, rows);
-      if (flooded) index[province].floodYearList.push(resource.year);
-    }
-
-    const list = Object.values(index).map(item => ({
-      province:item.province,
-      floodYears:item.floodYearList.length,
-      floodYearList:item.floodYearList,
-      checkedYears:7,
-      ratePct:Math.round((item.floodYearList.length / 7) * 1000) / 10,
-    }));
-
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('CDN-Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-    res.setHeader('Vercel-CDN-Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
-    return res.status(200).json({
-      ok:true,
-      source:'กรมป้องกันและบรรเทาสาธารณภัย (ปภ.)',
-      coverage:{ start:2562, end:2568, years:7 },
-      generatedAt:new Date().toISOString(),
-      elapsedMs:Date.now()-started,
-      count:list.length,
-      provinces:list,
-    });
-  } catch (error) {
-    return res.status(500).json({ ok:false, error:error.message || String(error) });
-  }
+export default function handler(req, res) {
+  const started = Date.now();
+  res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+  res.setHeader('CDN-Cache-Control', 'public, max-age=604800');
+  return res.status(200).json({
+    ok:true,
+    source:'กรมป้องกันและบรรเทาสาธารณภัย (ปภ.)',
+    sourceUrl:'https://catalog.disaster.go.th/dataset/dpm-gd027',
+    methodology:'นับปีที่จังหวัดมีระเบียนอุทกภัยจริงในชุด ปภ.; ปีสรุประดับจังหวัดต้องมีค่าผลกระทบมากกว่า 0',
+    coverage:{ start:2562, end:2568, years:7 },
+    verifiedAt:VERIFIED_AT,
+    elapsedMs:Date.now()-started,
+    count:list.length,
+    provinces:list,
+  });
 }
