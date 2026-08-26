@@ -231,21 +231,32 @@ function applyOfficialRecurrenceUi() {
 
 let applying = false;
 let queued = false;
+let observer = null;
+const watched = ['#selectedName','#recurrenceBadge','#yearMatrix','#eventDetails','#rankingList','#hotspotChips','#modalSearchResults']
+  .map(s => document.querySelector(s)).filter(Boolean);
+
+function connectObserver() {
+  if (!observer) return;
+  watched.forEach(el => observer.observe(el,{subtree:true,childList:true,characterData:true}));
+}
+
 function queueApply() {
   if (queued || applying) return;
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
     applying = true;
+    observer?.disconnect();
     try { applyOfficialRecurrenceUi(); }
-    finally { applying = false; }
+    finally {
+      applying = false;
+      connectObserver();
+    }
   });
 }
 
-const watched = ['#selectedName','#recurrenceBadge','#yearMatrix','#eventDetails','#rankingList','#hotspotChips','#modalSearchResults']
-  .map(s => document.querySelector(s)).filter(Boolean);
-const observer = new MutationObserver(queueApply);
-watched.forEach(el => observer.observe(el,{subtree:true,childList:true,characterData:true}));
+observer = new MutationObserver(queueApply);
+connectObserver();
 setTimeout(queueApply, 100);
 setTimeout(queueApply, 600);
 
