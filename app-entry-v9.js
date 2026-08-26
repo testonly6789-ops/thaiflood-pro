@@ -37,10 +37,12 @@ function dashboardReady() {
   if (chartLabel !== 'นครราชสีมา' || chartValue !== 31) return false;
 
   if (document.querySelector('#mapModeHistory')?.classList.contains('active')) {
-    const circles = [...document.querySelectorAll('#historyMap .leaflet-overlay-pane circle')];
-    if (circles.length !== 77) return false;
-    const radii = circles.map(c => Number(c.getAttribute('r'))).filter(Number.isFinite);
+    const qc = window.__tfMapRadiusQC || {};
+    const records = Object.values(qc);
+    if (records.length !== 77) return false;
+    const radii = records.map(x => Number(x.radius)).filter(Number.isFinite);
     if (radii.length !== 77 || Math.max(...radii) > 24.1 || Math.min(...radii) < 6.9) return false;
+    if (Number(qc['นครราชสีมา']?.count) !== 31 || Number(qc['บึงกาฬ']?.count) !== 1) return false;
   }
 
   const filterOptions = [...document.querySelectorAll('#frequencyFilter option')].map(x => x.textContent || '');
