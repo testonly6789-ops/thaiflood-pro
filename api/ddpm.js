@@ -35,6 +35,26 @@ function valueOf(record, patterns) {
   return k ? record[k] : null;
 }
 
+// CKAN resources do not use a single schema across years. Prefer human-readable
+// name columns and never let administrative codes leak into the UI as names.
+function textValue(record, preferredKeys, fallbackPatterns = []) {
+  const keys = Object.keys(record || {});
+  for (const wanted of preferredKeys) {
+    const key = keys.find(k => norm(k) === norm(wanted));
+    if (key && record[key] != null && String(record[key]).trim()) return record[key];
+  }
+  for (const pattern of fallbackPatterns) {
+    const key = keys.find(k => pattern.test(norm(k)) && !/(code|รหัส)/i.test(k));
+    if (key && record[key] != null && String(record[key]).trim()) return record[key];
+  }
+  return null;
+}
+
+const confirmedText = (value) => {
+  const text = String(value ?? '').trim();
+  return text && !/^(?:-|—|null|n\/a)$/i.test(text) ? text : null;
+};
+
 function sumFields(record, patternGroups) {
   let total = 0;
   let found = false;
@@ -50,13 +70,15 @@ function normalizeProvinceName(v='') {
 }
 
 function normalizeDistrictName(v='') {
-  return String(v).trim().replace(/^อำเภอ\s*/,'').replace(/^อ\.\s*/,'');
+  const value = String(v).trim().replace(/^อำเภอ\s*/,'').replace(/^อ\.\s*/,'');
+  // Values such as 25 and 23 are district codes, not district names.
+  return /^\d+$/.test(latinizeDigits(value)) ? '' : value;
 }
 
 function parseRecord(record, year) {
-  const provinceRaw = valueOf(record, [/^province$/i,/province/i,/จังหวัด/]);
-  const districtRaw = valueOf(record, [/^district$/i,/district/i,/อำเภอ/]);
-  const subdistrictRaw = valueOf(record, [/subdistrict/i,/ตำบล/]);
+  const provinceRaw = textValue(record, ['province_name','prov_name','changwat_name','จังหวัด'], [/province.*name/i,/provname/i,/ชื่อจังหวัด/i,/จังหวัด/i]);
+  const districtRaw = textValue(record, ['district_name','amphoe_name','amp_name','อำเภอ','ชื่ออำเภอ'], [/district.*name/i,/amphoe.*name/i,/ampname/i,/ชื่ออำเภอ/i,/อำเภอ/i]);
+  const subdistrictRaw = textValue(record, ['subdistrict_name','tambon_name','tam_name','ตำบล','ชื่อตำบล'], [/subdistrict.*name/i,/tambon.*name/i,/tamname/i,/ชื่อตำบล/i,/ตำบล/i]);
   const province = normalizeProvinceName(provinceRaw || '');
   const district = normalizeDistrictName(districtRaw || '');
   const subdistrict = String(subdistrictRaw || '').trim();
@@ -79,6 +101,17 @@ function parseRecord(record, year) {
     [/fieldcrops/i,/พืชไร่/i],
   ]);
 
+  const affectedArea = confirmedText(textValue(record,
+    ['affected_area','disaster_area','พื้นที่ประสบภัย','พื้นที่ได้รับผลกระทบ'],
+    [/affectedarea/i,/disasterarea(?!date)/i,/พื้นที่.*(?:ประสบภัย|ผลกระทบ)/i]));
+  const cause = confirmedText(textValue(record,
+    ['cause','disaster_cause','สาเหตุ','สาเหตุการเกิดภัย'], [/cause/i,/สาเหตุ/i]));
+  const description = confirmedText(textValue(record,
+    ['description','incident_description','situation','รายละเอียดเหตุการณ์','สถานการณ์'],
+    [/description/i,/incidentdetail/i,/รายละเอียด.*เหตุการณ์/i,/สถานการณ์(?!date)/i]));
+  const reliefBudgetThb = num(valueOf(record,
+    [/reliefbudget/i,/compensation/i,/assistancebudget/i,/งบ.*ช่วยเหลือ/i,/เงิน.*ชดเชย/i,/งบ.*เยียวยา/i]));
+
   const dates = {
     situation: valueOf(record, [/situationdate/i,/วันที่.*สถานการณ์/i]),
     disasterArea: valueOf(record, [/disasterareadate/i,/วันที่.*เขตภัย/i]),
@@ -90,7 +123,7 @@ function parseRecord(record, year) {
     year, province, district, subdistrict,
     households, population, deaths, missing, injured,
     totalDamageThb, agriDamageThb, housingDamageThb, economicDamageThb, publicDamageThb,
-    agriRai, dates,
+    agriRai, affectedArea, cause, description, reliefBudgetThb, dates,
     raw: record,
   };
 }
@@ -126,6 +159,9 @@ function aggregateYear(rows, year, requestedProvince) {
 
   const districts = [...new Set(provinceRows.map(r => r.district).filter(Boolean))];
   const subdistricts = [...new Set(provinceRows.map(r => r.subdistrict).filter(Boolean))];
+  const affectedAreas = [...new Set(provinceRows.map(r => r.affectedArea).filter(Boolean))];
+  const causes = [...new Set(provinceRows.map(r => r.cause).filter(Boolean))];
+  const descriptions = [...new Set(provinceRows.map(r => r.description).filter(Boolean))];
   const sum = (key) => {
     const vals = provinceRows.map(r => r[key]).filter(v => v != null);
     return vals.length ? vals.reduce((a,b)=>a+b,0) : null;
@@ -141,12 +177,17 @@ function aggregateYear(rows, year, requestedProvince) {
     recordCount: provinceRows.length,
     districts,
     subdistricts,
+    affectedAreas,
+    causes,
+    descriptions,
     households: sum('households'),
     population: sum('population'),
     deaths: sum('deaths'),
     missing: sum('missing'),
     injured: sum('injured'),
     agriRai: sum('agriRai'),
+    reliefBudgetThb: sum('reliefBudgetThb'),
+    reliefBudgetM: sum('reliefBudgetThb') == null ? null : sum('reliefBudgetThb') / 1_000_000,
     totalDamageThb,
     totalDamageM: totalDamageThb == null ? null : totalDamageThb / 1_000_000,
     agriDamageThb,
@@ -198,7 +239,7 @@ export default async function handler(req, res) {
     fetchedAt: new Date().toISOString(),
     status,
     summary: {
-      officialYearsWithRecords: years.length,
+      officialYearsWithRecords: years.length || null,
       districts,
       households: sum('households'),
       population: sum('population'),
@@ -208,7 +249,10 @@ export default async function handler(req, res) {
       agriRai: sum('agriRai'),
       totalDamageM: sum('totalDamageM'),
       agriDamageM: sum('agriDamageM'),
+      reliefBudgetM: sum('reliefBudgetM'),
     },
     years,
   });
 }
+
+export { parseRecord, aggregateYear, normalizeDistrictName };
