@@ -62,8 +62,19 @@ export default async function handler(req, res) {
   const totalRecurringDistricts = usable.reduce((sum,x) => sum + x.recurringDistrictCount, 0);
   const maxYears = usable.length ? Math.max(...usable.map(x => x.maxYears)) : 0;
   const checkedYearCounts = [...new Set(usable.map(x => x.checkedYears))].sort((a,b)=>a-b);
+  const compact = String(req.query?.compact || '') === '1';
+  const compactRows = rows.map(x => ({
+    province:x.province,
+    recurringDistrictCount:x.recurringDistrictCount,
+    maxYears:x.maxYears,
+    checkedYears:x.checkedYears,
+    topDistricts:(x.topDistricts || []).slice(0,3),
+    topRanking:(x.ranking || []).slice(0,3),
+  }));
 
-  res.setHeader('Cache-Control','public, max-age=300, s-maxage=21600, stale-while-revalidate=86400');
+  res.setHeader('Cache-Control','public, max-age=300');
+  res.setHeader('CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
+  res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
   return res.status(200).json({
     ok:usable.length === provinces.length,
     source:'กรมป้องกันและบรรเทาสาธารณภัย (ปภ.)',
@@ -77,8 +88,7 @@ export default async function handler(req, res) {
     maxYears,
     checkedYearCounts,
     topProvince:recurring[0] || null,
-    ranked:recurring,
-    provinces:rows,
+    ...(compact ? { provinces:compactRows } : { ranked:recurring, provinces:rows }),
     elapsedMs:Date.now()-started,
   });
 }
