@@ -1,6 +1,26 @@
 // Mobile-first loading polish for the 14-year dashboard.
-// Keeps the existing visual theme while preventing partially-hidden cards from
-// leaving large blank holes during the 14-year data fetch.
+// Uses the build-time QC snapshot first, then falls back to the live API.
+const nativeFetch=window.fetch.bind(window);
+const snapshotPromise=nativeFetch('/historical14y-snapshot.json',{cache:'force-cache'}).then(async r=>{
+  if(!r.ok)throw new Error(`snapshot ${r.status}`);
+  const data=await r.json();
+  if(!data?.ok||Number(data?.coverage?.years)!==14||Number(data?.provinceCount)!==77)throw new Error('snapshot QC mismatch');
+  return data;
+});
+window.fetch=async(input,init)=>{
+  try{
+    const raw=typeof input==='string'?input:input?.url;
+    const u=new URL(raw,location.origin);
+    if(u.pathname==='/api/spatial-index'&&u.searchParams.get('historical14y')==='1'){
+      try{
+        const data=await snapshotPromise;
+        return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json; charset=utf-8','X-ThaiFlood-Source':'build-snapshot'}});
+      }catch{}
+    }
+  }catch{}
+  return nativeFetch(input,init);
+};
+
 const style=document.createElement('style');
 style.id='tf14MobilePolish';
 style.textContent=`
@@ -47,7 +67,7 @@ loading.id='tf14LoadingCard';
 loading.className='tf14-loading-card';
 loading.setAttribute('role','status');
 loading.setAttribute('aria-live','polite');
-loading.innerHTML='<i class="tf14-loading-dot" aria-hidden="true"></i><div><b>กำลังโหลดฐานประวัติน้ำท่วม 14 ปี</b><span>กำลังรวมข้อมูล GISTDA และ ปภ. ให้ใช้ความหมายเดียวกันทั้งหน้า</span></div>';
+loading.innerHTML='<i class="tf14-loading-dot" aria-hidden="true"></i><div><b>กำลังเตรียมฐานประวัติน้ำท่วม 14 ปี</b><span>ตรวจสอบความหมายของข้อมูล GISTDA และ ปภ. ก่อนแสดงผล</span></div>';
 search?.insertAdjacentElement('afterend',loading);
 
 let finished=false;
@@ -66,4 +86,4 @@ setTimeout(()=>{
   if(finished)return;
   const card=document.getElementById('tf14LoadingCard');
   if(card)card.innerHTML='<div><b>กำลังเชื่อมฐานข้อมูลนานกว่าปกติ</b><span>หน้าเว็บจะยังไม่แสดงตัวเลขประวัติ จนกว่าการตรวจข้อมูล 14 ปีจะเสร็จ</span></div>';
-},18000);
+},8000);
