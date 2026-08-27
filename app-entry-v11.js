@@ -5,6 +5,7 @@ deepGuard.id='tfHistoricalDeepGuard';
 deepGuard.textContent=`
 #spatialRecurrenceBadge,#metricSpatialRecurrence,#spatialYearMatrix,
 #spatialHotspotTags,#spatialPatternInsight {visibility:hidden!important;}
+.tf-hide-official-coverage{display:none!important;}
 `;
 document.head.appendChild(deepGuard);
 
@@ -37,12 +38,13 @@ function renderDeep(){
   const badge=document.querySelector('#spatialRecurrenceBadge');
   if(badge){badge.innerHTML=`<small>พื้นที่เดิมท่วมซ้ำสูงสุด • 14 ปี</small><strong style="font-size:22px;line-height:1.15">${max}/14 ปี</strong><span>${names.join(' • ')}${more}</span>`;badge.title='ความถี่ของอำเภอ/เขตเดิมจากหลักฐานย้อนหลัง พ.ศ. 2554–2567';}
   const metric=document.querySelector('#metricSpatialRecurrence');
-  if(metric){metric.textContent=`${max}/14 ปี`;const c=metric.parentElement,l=c?.querySelector('span'),n=c?.querySelector('small');if(l)l.textContent='อำเภอ/เขตเดิมที่พบอุทกภัยซ้ำสูงสุด';if(n)n.textContent=`${names.join(' • ')}${more}`;}
+  if(metric){metric.textContent=`${max}/14 ปี`;const c=metric.parentElement,l=c?.querySelector('span'),n=c?.querySelector('small');if(c)c.style.gridColumn='1 / -1';if(l)l.textContent='อำเภอ/เขตเดิมที่พบอุทกภัยซ้ำสูงสุด';if(n)n.textContent=`${names.join(' • ')}${more}`;}
 
-  // This card belongs to the dedicated DDPM 2562-2568 tab, so keep it as
-  // coverage metadata instead of pretending it is the 14-year recurrence KPI.
+  // Remove the legacy 7-year DDPM coverage card from the Overview tab.
+  // It is source-coverage metadata, not a province flood KPI, and displaying it
+  // beside the 14-year recurrence metric is misleading.
   const official=document.querySelector('#officialSpatialRecurrence');
-  if(official){official.textContent='7 ปี';const c=official.parentElement,l=c?.querySelector('span'),n=c?.querySelector('small');if(l)l.textContent='ข้อมูล ปภ. ครอบคลุม';if(n)n.textContent='พ.ศ. 2562–2568 • บางปีเป็นสรุประดับจังหวัด';}
+  if(official){const c=official.parentElement;if(c)c.classList.add('tf-hide-official-coverage');}
 
   const tags=document.querySelector('#spatialHotspotTags');
   if(tags)tags.innerHTML=top.length?top.map(x=>`<span class="tag emphasis">${x.district} • ${x.yearCount}/14 ปี</span>`).join(''):'<span class="empty-text">ไม่พบพื้นที่เดิมซ้ำ ≥2 ปี</span>';
