@@ -1,8 +1,8 @@
 import { provinces as provinceMeta } from './provinces.js';
 import { buildHistoricalNational, buildHistoricalProvince, auditHistoricalSources } from '../lib/historical-14y-engine.js';
+import historical14ySnapshot from '../lib/historical14y-snapshot.generated.js';
 
-// Current production fallback snapshot (5 comparable DDPM district-detail years).
-// This remains the default until the 14-year source audit passes and the UI is switched.
+// Current 5-year fallback snapshot for the legacy/default route.
 const SNAPSHOT_ROWS = [
   ['กรุงเทพมหานคร',12,2],['กระบี่',8,5],['กาญจนบุรี',13,5],['กาฬสินธุ์',18,5],['กำแพงเพชร',11,5],
   ['ขอนแก่น',23,5],['จันทบุรี',10,5],['ฉะเชิงเทรา',7,5],['ชลบุรี',7,5],['ชัยนาท',8,4],
@@ -57,6 +57,16 @@ function historicalCache(res) {
   res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=21600, stale-while-revalidate=86400');
 }
 
+function isValidBundledSnapshot(data) {
+  return Boolean(data?.ok)
+    && Number(data?.provinceCount) === 77
+    && Number(data?.coverage?.years) === 14
+    && Number(data?.coverage?.startBE) === 2554
+    && Number(data?.coverage?.endBE) === 2567
+    && Number(data?.totalDistrictsWithAnyHistory) <= 928
+    && Number(data?.totalRecurringDistricts) === 881;
+}
+
 export default async function handler(req, res) {
   const province = String(req.query?.province || '').trim();
 
@@ -72,7 +82,18 @@ export default async function handler(req, res) {
   if (String(req.query?.historical14y || '') === '1') {
     try {
       historicalCache(res);
+
+      // National dashboard requests are served from the QC-generated module
+      // bundled into this serverless function. No GISTDA/DDPM network request is
+      // made while a user is waiting for the page to load.
+      if (!province && isValidBundledSnapshot(historical14ySnapshot)) {
+        res.setHeader('X-ThaiFlood-Source','bundled-14y-snapshot');
+        return res.status(200).json(historical14ySnapshot);
+      }
+
+      // Keep an explicit live fallback for diagnostics/province-only requests.
       const payload = province ? await buildHistoricalProvince(province) : await buildHistoricalNational();
+      res.setHeader('X-ThaiFlood-Source','live-14y-fallback');
       return res.status(payload.ok ? 200 : 503).json(payload);
     } catch (error) {
       return res.status(500).json({ok:false,province:province || null,error:error?.message || String(error)});
