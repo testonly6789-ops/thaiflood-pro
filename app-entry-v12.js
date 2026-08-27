@@ -6,16 +6,14 @@ const snapshotPromise=nativeFetch('/historical14y-snapshot.json',{cache:'force-c
   const data=await r.json();
   if(!data?.ok||Number(data?.coverage?.years)!==14||Number(data?.provinceCount)!==77)throw new Error('snapshot QC mismatch');
   return data;
-});
+}).catch(()=>null);
 window.fetch=async(input,init)=>{
   try{
     const raw=typeof input==='string'?input:input?.url;
     const u=new URL(raw,location.origin);
     if(u.pathname==='/api/spatial-index'&&u.searchParams.get('historical14y')==='1'){
-      try{
-        const data=await snapshotPromise;
-        return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json; charset=utf-8','X-ThaiFlood-Source':'build-snapshot'}});
-      }catch{}
+      const data=await snapshotPromise;
+      if(data)return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json; charset=utf-8','X-ThaiFlood-Source':'build-snapshot'}});
     }
   }catch{}
   return nativeFetch(input,init);
@@ -44,8 +42,8 @@ html.tf14-loading footer{display:none!important}
   .hero{gap:0;margin-bottom:12px;align-items:start}
   .hero-copy-wrap{padding:0}
   .hero .eyebrow{font-size:10.5px;line-height:1.5;letter-spacing:.12em;margin-bottom:8px}
-  .hero h1{font-size:clamp(38px,10.8vw,44px);line-height:.99;letter-spacing:-.035em;margin:0 0 14px}
-  .hero p{font-size:13px;line-height:1.68}
+  .hero h1{font-size:clamp(34px,9.8vw,40px);line-height:1;letter-spacing:-.03em;margin:0 0 13px}
+  .hero p{font-size:13px;line-height:1.65}
   .search-strip{grid-template-columns:minmax(0,1fr) 88px;gap:8px;margin-bottom:10px;padding:7px 0 9px}
   .search-trigger{min-width:0;width:100%;height:54px;padding:0 14px}
   .search-trigger-icon{font-size:24px}
