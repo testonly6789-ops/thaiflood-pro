@@ -1,0 +1,56 @@
+name: Historical 14-year data QC
+
+on:
+  push:
+    branches:
+      - qc/historical14y-final
+  workflow_dispatch:
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run national 14-year source audit
+        run: |
+          node --input-type=module <<'NODE'
+          import { auditHistoricalSources, buildHistoricalProvince } from './lib/historical-14y-engine.js';
+
+          const audit = await auditHistoricalSources();
+          console.log('HISTORICAL14Y_AUDIT=' + JSON.stringify(audit));
+
+          for (const province of ['เชียงใหม่','กาญจนบุรี','นครราชสีมา']) {
+            const p = await buildHistoricalProvince(province);
+            console.log('HISTORICAL14Y_PROVINCE=' + JSON.stringify({
+              province:p.province,
+              ok:p.ok,
+              coverage:p.coverage,
+              districtCount:p.districtCount,
+              recurringDistrictCount:p.recurringDistrictCount,
+              maxYears:p.maxYears,
+              topDistricts:p.topDistricts?.slice(0,5),
+              yearDistrictCounts:p.yearDistrictCounts,
+            }));
+          }
+
+          if (!audit.ok) {
+            console.error('14-year QC failed: ' + JSON.stringify(audit.qc));
+            process.exit(1);
+          }
+          if (audit.provinceCount !== 77) {
+            console.error(`Expected 77 provinces, got ${audit.provinceCount}`);
+            process.exit(1);
+          }
+          if (audit.coverage?.years !== 14 || audit.coverage?.startBE !== 2554 || audit.coverage?.endBE !== 2567) {
+            console.error('Coverage is not B.E. 2554-2567 / 14 years');
+            process.exit(1);
+          }
+          NODE
