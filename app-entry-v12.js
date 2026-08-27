@@ -1,7 +1,7 @@
 // Mobile-first loading polish for the 14-year dashboard.
-// Historical data now comes from one verified API route. The API itself serves
-// the QC-generated build snapshot, so the browser never depends on a loose JSON
-// file that may not be deployed.
+// Data validity and UI polish are intentionally separate: once the verified
+// 14-year payload is present, the page must never remain trapped behind a
+// visual-QC loading gate.
 const nativeFetch=window.fetch.bind(window);
 window.fetch=async(input,init)=>{
   try{
@@ -9,13 +9,13 @@ window.fetch=async(input,init)=>{
     const u=new URL(raw,location.origin);
     if(u.pathname==='/api/spatial-index'&&u.searchParams.get('historical14y')==='1'){
       const controller=new AbortController();
-      const timer=setTimeout(()=>controller.abort(),12000);
+      const timer=setTimeout(()=>controller.abort(),20000);
       try{
         return await nativeFetch(input,{...(init||{}),signal:controller.signal,cache:'no-store'});
       }finally{clearTimeout(timer);}
     }
   }catch(error){
-    if(error?.name==='AbortError')throw new Error('โหลดฐานประวัติ 14 ปีเกิน 12 วินาที');
+    if(error?.name==='AbortError')throw new Error('โหลดฐานประวัติ 14 ปีเกิน 20 วินาที');
     throw error;
   }
   return nativeFetch(input,init);
@@ -72,22 +72,67 @@ loading.innerHTML='<i class="tf14-loading-dot" aria-hidden="true"></i><div><b>�
 search?.insertAdjacentElement('afterend',loading);
 
 let finished=false;
+let finishScheduled=false;
+let pollTimer=null;
+let failureTimer=null;
+
+function hasVerified14YearData(){
+  const data=window.__tfHistorical14y;
+  return Number(data?.provinceCount)===77
+    && Number(data?.coverage?.years)===14
+    && Number(data?.coverage?.startBE)===2554
+    && Number(data?.coverage?.endBE)===2567;
+}
+
 function finish(){
-  if(finished)return;
+  if(finished||!hasVerified14YearData())return;
   finished=true;
+  if(pollTimer)clearInterval(pollTimer);
+  if(failureTimer)clearTimeout(failureTimer);
   document.documentElement.classList.remove('tf14-loading');
   document.getElementById('tf14LoadingCard')?.remove();
+  // app-entry-v10 has a conservative visual-QC guard. Verified data must not
+  // remain hidden just because a later DOM consistency check is delayed.
+  document.getElementById('tfHistorical14yGuard')?.remove();
 }
+
+function scheduleFinish(){
+  if(finished||finishScheduled||!hasVerified14YearData())return;
+  finishScheduled=true;
+  // Give the legacy chart/ranking/map one short bounded window to repaint.
+  setTimeout(finish,1700);
+}
+
 function showLoadFailure(){
-  if(finished)return;
+  if(finished||hasVerified14YearData()){
+    scheduleFinish();
+    return;
+  }
   const card=document.getElementById('tf14LoadingCard');
   if(!card)return;
   card.innerHTML='<div><b>โหลดฐานประวัติ 14 ปีไม่สำเร็จ</b><span>ระบบหยุดแสดงตัวเลขเก่าเพื่อป้องกันข้อมูลผิด</span><br><button class="tf14-retry" type="button">ลองใหม่</button></div>';
   card.querySelector('.tf14-retry')?.addEventListener('click',()=>location.reload());
 }
-window.addEventListener('tf:historical14y-ready',finish,{once:true});
 
-await import('/app-entry-v11.js?v=20260827-historical14y-api-bundle1');
+window.addEventListener('tf:historical14y-ready',()=>{
+  if(hasVerified14YearData())finish();
+},{once:true});
+window.addEventListener('tf:historical14y-data-ready',scheduleFinish,{once:true});
 
-if(window.__tfHistorical14y?.coverage?.years===14)finish();
-setTimeout(showLoadFailure,13000);
+// Start the historical UI chain without blocking the loading watchdog. The old
+// implementation awaited this import before starting its timeout, so any slow
+// downstream module could leave mobile users on an endless loading screen.
+const bootPromise=import('/app-entry-v11.js?v=20260827-historical14y-ready2')
+  .then(()=>{if(hasVerified14YearData())scheduleFinish();})
+  .catch(error=>{
+    console.error('14-year UI bootstrap failed',error);
+    showLoadFailure();
+  });
+
+pollTimer=setInterval(()=>{
+  if(hasVerified14YearData())scheduleFinish();
+},100);
+failureTimer=setTimeout(showLoadFailure,21000);
+
+await bootPromise;
+if(hasVerified14YearData())scheduleFinish();
