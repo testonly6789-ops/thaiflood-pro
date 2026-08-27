@@ -122,7 +122,7 @@ window.addEventListener('tf:historical14y-data-ready',scheduleFinish,{once:true}
 // Start the historical UI chain without blocking the loading watchdog. The old
 // implementation awaited this import before starting its timeout, so any slow
 // downstream module could leave mobile users on an endless loading screen.
-const bootPromise=import('/app-entry-v11.js?v=20260827-historical14y-ready2')
+const bootPromise=import('/app-entry-v11.js?v=20260827-historical14y-ready3')
   .then(()=>{if(hasVerified14YearData())scheduleFinish();})
   .catch(error=>{
     console.error('14-year UI bootstrap failed',error);
