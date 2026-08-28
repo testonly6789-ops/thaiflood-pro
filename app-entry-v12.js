@@ -57,6 +57,17 @@ html.tf14-loading footer{display:none!important}
   .tf14-loading-card b{font-size:13px}.tf14-loading-card span{font-size:11px}
   .headline-stats{grid-template-columns:1fr 1fr;gap:8px}
   .headline-stats article{min-width:0}
+
+  /* Province Deep Dive: keep the escape control visible and make scrolling cheap. */
+  .modal{padding:0;align-items:stretch;overscroll-behavior:contain}
+  .modal-backdrop{backdrop-filter:none!important;background:rgba(16,26,40,.42)}
+  .modal-panel--province{width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;padding:0 16px 24px!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scroll-behavior:auto}
+  .modal-panel--province .sticky-head{position:sticky!important;top:0!important;z-index:70!important;margin:0 -16px!important;padding:12px 66px 10px 16px!important;background:#fff!important;backdrop-filter:none!important;box-shadow:0 1px 0 #edf1f7}
+  .modal-panel--province .modal-close{position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 10px)!important;right:12px!important;z-index:200!important;width:48px!important;height:48px!important;border-radius:16px!important;background:#fff!important;box-shadow:0 6px 20px rgba(24,40,58,.14)!important;touch-action:manipulation}
+  .modal-panel--province .mini-tabs{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .modal-panel--province .mini-tabs::-webkit-scrollbar{display:none}
+  .modal-panel--province .tab-panel.active{contain:layout style}
+  .modal-panel--province .metric-grid,.modal-panel--province .pattern-grid,.modal-panel--province .event-details{box-shadow:none!important}
 }
 `;
 document.head.appendChild(style);
@@ -91,15 +102,12 @@ function finish(){
   if(failureTimer)clearTimeout(failureTimer);
   document.documentElement.classList.remove('tf14-loading');
   document.getElementById('tf14LoadingCard')?.remove();
-  // app-entry-v10 has a conservative visual-QC guard. Verified data must not
-  // remain hidden just because a later DOM consistency check is delayed.
   document.getElementById('tfHistorical14yGuard')?.remove();
 }
 
 function scheduleFinish(){
   if(finished||finishScheduled||!hasVerified14YearData())return;
   finishScheduled=true;
-  // Give the legacy chart/ranking/map one short bounded window to repaint.
   setTimeout(finish,1700);
 }
 
@@ -119,10 +127,7 @@ window.addEventListener('tf:historical14y-ready',()=>{
 },{once:true});
 window.addEventListener('tf:historical14y-data-ready',scheduleFinish,{once:true});
 
-// Start the historical UI chain without blocking the loading watchdog. The old
-// implementation awaited this import before starting its timeout, so any slow
-// downstream module could leave mobile users on an endless loading screen.
-const bootPromise=import('/app-entry-v11.js?v=20260827-historical14y-ready3')
+const bootPromise=import('/app-entry-v11.js?v=20260828-province-mobile-perf1')
   .then(()=>{if(hasVerified14YearData())scheduleFinish();})
   .catch(error=>{
     console.error('14-year UI bootstrap failed',error);
